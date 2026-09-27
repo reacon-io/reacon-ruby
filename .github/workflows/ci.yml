@@ -38,5 +38,7 @@ jobs:
             sdk-ci-results/evidence.json
             sdk-ci-results/responses.json
             sdk-ci-results/run.log
+            sdk-ci-results/package-manifest.json
+            sdk-ci-results/artifacts/
           if-no-files-found: error
           retention-days: 30
