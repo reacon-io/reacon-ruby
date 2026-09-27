@@ -1,0 +1,13 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.4.0'
+    id 'application'
+}
+repositories {
+    maven { url = uri('/cache/recording-maven'); content { includeModule('io.reacon', 'reacon-kotlin') } }
+    mavenCentral()
+}
+dependencies {
+    implementation "io.reacon:reacon-kotlin:${System.getenv('REACON_SDK_PACKAGE_VERSION')}"
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:2.4.0'
+}
+application { mainClass = 'RecordingConsumerKt' }
