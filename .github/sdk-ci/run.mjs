@@ -8,14 +8,15 @@ import { startRecordingServer } from './replay-server.mjs';
 import { startStreamServer, streamScenarios } from './stream-server.mjs';
 import { prepareJavaConsumer } from './recordings/java-consumer.mjs';
 import { prepareRustConsumer } from './recordings/rust-consumer.mjs';
-import { writeCiPackageManifest } from './package-artifacts.mjs';
+import { writeCiPackageManifest, readCiPackageArtifacts } from './package-artifacts.mjs';
+import { installedStreamRuntimeEvidence } from './streaming-package-evidence.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const suite = dirname(fileURLToPath(import.meta.url));
 const manifestBytes = await readFile(resolve(suite, 'manifest.json'));
 const manifest = JSON.parse(manifestBytes), family = manifest.family;
 const families = ['typescript', 'python', 'ruby', 'rust', 'java', 'kotlin', 'csharp'];
-if (manifest.formatVersion !== 1 || !families.includes(family) || !/^[a-z0-9./-]+@sha256:[a-f0-9]{64}$/.test(manifest.image)) throw new Error('Invalid SDK CI manifest');
+if (manifest.streamingIsolation !== 'retained-packages-without-source' || manifest.formatVersion !== 1 || !families.includes(family) || !/^[a-z0-9./-]+@sha256:[a-f0-9]{64}$/.test(manifest.image)) throw new Error('Invalid SDK CI manifest');
 for (const [path, digest] of Object.entries(manifest.files)) {
   if (!/^[A-Za-z0-9_./-]+$/.test(path) || path.split('/').some(part => !part || part === '.' || part === '..') ||
       hash(await readFile(resolve(suite, path))) !== digest) throw new Error('CI bundle changed');
@@ -62,13 +63,42 @@ try {
     '-v', `${work}:/work`, '-v', `${cache}:/cache`, '-v', `${output}:/results`, '-w', '/work',
     ...Object.entries(env).flatMap(([name, value]) => ['-e', `${name}=${value}`]), manifest.image, 'sh', `/ci/${family}.sh`];
   const log = createWriteStream(resolve(output, 'run.log'));
-  const exitCode = await new Promise((done, reject) => {
+  const runContainer = async args => await new Promise((done, reject) => {
     const child = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);
     child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
-    child.once('error', reject); child.once('close', code => log.end(() => done(code ?? 1)));
+    child.once('error', reject); child.once('close', code => done(code ?? 1));
   });
+  const buildExitCode = await runContainer(args);
+  let streamExitCode = null, streamRuntime = null, streamPackageFiles = null, streamFailure = null;
+  const streamModes = family === 'typescript' ? ['typescript','typescript-esm'] : [family];
+  if (buildExitCode === 0) {
+    try {
+      const before = await readCiPackageArtifacts(output, manifest);
+      const streamOutput = resolve(output, 'streaming'); await mkdir(streamOutput);
+      if (family === 'java') await cp(resolve(output, 'classpath'), resolve(streamOutput, 'classpath'));
+      const streamEnv = {...env, SDK_DIRECTORY: '', REACON_TEST_URL: `${streams.url}/${family}`, REACON_STREAM_BASE_URL: streams.url};
+      // No /work or parent output mount: the SDK checkout is unavailable.
+      const streamArgs = ['run','--rm','--network','host','--user',`${process.getuid()}:${process.getgid()}`,
+        '-v',`${suite}:/ci:ro`,'-v',`${suite}/recordings:/suite:ro`,'-v',`${suite}/streams:/sdk/conformance:ro`,
+        '-v',`${resolve(output,'artifacts')}:/artifacts:ro`,'-v',`${cache}:/cache`,
+        '-v',`${streamOutput}:/results`,'-w','/results',
+        ...Object.entries(streamEnv).flatMap(([name,value])=>['-e',`${name}=${value}`]),manifest.image,'sh',`/ci/stream-${family}.sh`];
+      streamExitCode = await runContainer(streamArgs);
+      if (streamExitCode !== 0) throw new Error(`Installed streaming consumer failed (${streamExitCode})`);
+      const after = await readCiPackageArtifacts(output, manifest);
+      if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error('Retained packages changed during streaming');
+      const proof = family === 'rust' ? {cargoMetadata:JSON.parse(await readFile(resolve(streamOutput,'cargo-metadata.json')))}
+        : {proof:JSON.parse(await readFile(resolve(streamOutput,'streaming-runtime.json')))};
+      streamRuntime = installedStreamRuntimeEvidence({family,packageVersion:manifest.packageVersion,files:after,...proof});
+      streamPackageFiles = after;
+    } catch(error) {streamFailure=error.message;}
+  }
+  await new Promise(done => log.end(done));
+  const exitCode = buildExitCode || streamExitCode || (streamFailure ? 1 : 0);
   const results = [], failures = [];
+  if (streamFailure) failures.push(streamFailure);
+  if (streamExitCode !== 0) failures.push('Installed streaming container did not pass');
   for (const mode of modes) {
     let items = [];
     try { recordings.assertComplete(mode); } catch (error) { failures.push(error.message); }
@@ -77,7 +107,9 @@ try {
     if (!passed) failures.push(`${mode} response assertions failed`);
     results.push({ mode, passed, scenarios: cases.length, results: items, requests: recordings.observations.get(mode) });
   }
-  try { await streams.assertComplete(family); } catch (error) { failures.push(error.message); }
+  for (const mode of streamModes) {
+    try { await streams.assertComplete(mode); } catch (error) { failures.push(`${mode}: ${error.message}`); }
+  }
   let passed = exitCode === 0 && failures.length === 0;
   const sourceSha256 = hash(JSON.stringify(Object.fromEntries(Object.entries(sourceFiles).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))));
   let packageArtifacts;
@@ -90,7 +122,9 @@ try {
     sourceRevision: process.env.REACON_SOURCE_REVISION ?? null,
     sourceSha256, ...(packageArtifacts ? { packageArtifacts } : {}),
     image: manifest.image, packageVersion: manifest.packageVersion, contractSha256: manifest.contractSha256,
-    recordedResponses: results, streaming: { evidence: 'synthetic-http-streaming-subset', scenarios: streamScenarios, requests: streams.observations.get(family) },
+    recordedResponses: results, streaming: { evidence: 'synthetic-http-streaming-subset', scenarios: streamScenarios, requests: streams.observations.get(family),
+      isolation: 'retained-packages-without-source', exitCode: streamExitCode, files: streamPackageFiles, runtime: streamRuntime,
+      modes: streamModes.map(mode=>({mode,requests:streams.observations.get(mode)})) },
     suiteManifestSha256: hash(manifestBytes), publicRegistryInstallPassed: false, liveApiPassed: false, publishable: false };
   await writeFile(resolve(output, 'responses.json'), JSON.stringify(results, null, 2) + '\n');
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(report, null, 2) + '\n');

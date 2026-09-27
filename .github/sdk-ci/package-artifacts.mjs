@@ -34,6 +34,18 @@ export async function writeCiPackageManifest(output, context) {
       (context.sourceRevision !== null && !/^[a-f0-9]{40}$/.test(context.sourceRevision ?? '')) ||
       ['sourceSha256', 'contractSha256', 'suiteManifestSha256'].some(key => !/^[a-f0-9]{64}$/.test(context[key] ?? '')))
     throw new Error('Passing package CI with complete source and toolchain bindings is required');
+  const files = await readCiPackageArtifacts(output, context);
+  const manifest = { formatVersion: 1, kind: 'sdk-ci-package-artifacts', family: context.family,
+    canonicalVersion: context.canonicalVersion, packageVersion: context.packageVersion,
+    sourceRevision: context.sourceRevision, sourceSha256: context.sourceSha256,
+    contractSha256: context.contractSha256, suiteManifestSha256: context.suiteManifestSha256,
+    image: context.image, files, versionsReserved: false, publishable: false };
+  const bytes = Buffer.from(JSON.stringify(manifest, null, 2) + '\n');
+  await writeFile(resolve(output, 'package-manifest.json'), bytes, { flag: 'wx' });
+  return { manifestSha256: hash(bytes), files };
+}
+
+export async function readCiPackageArtifacts(output, context) {
   const directory = resolve(output, 'artifacts');
   if (await realpath(directory) !== directory) throw new Error('Package artifact directory cannot use symlinks');
   const entries = await readdir(directory, { withFileTypes: true });
@@ -51,12 +63,5 @@ export async function writeCiPackageManifest(output, context) {
       files[name] = { sha256: hash(bytes), size: bytes.length };
     } finally { await file.close(); }
   }
-  const manifest = { formatVersion: 1, kind: 'sdk-ci-package-artifacts', family: context.family,
-    canonicalVersion: context.canonicalVersion, packageVersion: context.packageVersion,
-    sourceRevision: context.sourceRevision, sourceSha256: context.sourceSha256,
-    contractSha256: context.contractSha256, suiteManifestSha256: context.suiteManifestSha256,
-    image: context.image, files, versionsReserved: false, publishable: false };
-  const bytes = Buffer.from(JSON.stringify(manifest, null, 2) + '\n');
-  await writeFile(resolve(output, 'package-manifest.json'), bytes, { flag: 'wx' });
-  return { manifestSha256: hash(bytes), files };
+  return files;
 }
