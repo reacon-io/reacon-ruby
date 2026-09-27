@@ -1,0 +1,5 @@
+allprojects {
+    afterEvaluate {
+        publishing.repositories { maven { name = 'Recording'; url = uri('/cache/recording-maven') } }
+    }
+}
