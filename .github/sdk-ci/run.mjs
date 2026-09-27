@@ -8,6 +8,7 @@ import { startRecordingServer } from './replay-server.mjs';
 import { startStreamServer, streamScenarios } from './stream-server.mjs';
 import { prepareJavaConsumer } from './recordings/java-consumer.mjs';
 import { prepareRustConsumer } from './recordings/rust-consumer.mjs';
+import { writeCiPackageManifest } from './package-artifacts.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const suite = dirname(fileURLToPath(import.meta.url));
@@ -77,10 +78,17 @@ try {
     results.push({ mode, passed, scenarios: cases.length, results: items, requests: recordings.observations.get(mode) });
   }
   try { await streams.assertComplete(family); } catch (error) { failures.push(error.message); }
-  const passed = exitCode === 0 && failures.length === 0;
+  let passed = exitCode === 0 && failures.length === 0;
+  const sourceSha256 = hash(JSON.stringify(Object.fromEntries(Object.entries(sourceFiles).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))));
+  let packageArtifacts;
+  if (passed) {
+    try { packageArtifacts = await writeCiPackageManifest(output, { ...manifest, passed,
+      sourceRevision: process.env.REACON_SOURCE_REVISION ?? null, sourceSha256, suiteManifestSha256: hash(manifestBytes) }); }
+    catch (error) { passed = false; failures.push(`Package retention failed: ${error.message}`); }
+  }
   const report = { formatVersion: 1, kind: 'sdk-repository-source-ci', family, passed, exitCode, failures,
     sourceRevision: process.env.REACON_SOURCE_REVISION ?? null,
-    sourceSha256: hash(JSON.stringify(Object.fromEntries(Object.entries(sourceFiles).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)))),
+    sourceSha256, ...(packageArtifacts ? { packageArtifacts } : {}),
     image: manifest.image, packageVersion: manifest.packageVersion, contractSha256: manifest.contractSha256,
     recordedResponses: results, streaming: { evidence: 'synthetic-http-streaming-subset', scenarios: streamScenarios, requests: streams.observations.get(family) },
     suiteManifestSha256: hash(manifestBytes), publicRegistryInstallPassed: false, liveApiPassed: false, publishable: false };
