@@ -1,0 +1,41 @@
+{
+  "formatVersion": 1,
+  "images": {
+    "go": {
+      "tag": "golang:1.26-bookworm",
+      "image": "golang@sha256:a688600ca24f8a4d3ca77f95b0dd40704a9fc787c826660eb7ba0b641b8b175d"
+    },
+    "php": {
+      "tag": "composer:2",
+      "image": "composer@sha256:9715c7f69044da2a212a5fbde29ee7da24e364d426560ae6367b060236f847d7"
+    },
+    "ruby": {
+      "tag": "ruby:3.3-bookworm",
+      "image": "ruby@sha256:dba270af6994f64e45ee3dd2b85225a2a0d01f29c04508c7a3c7c8dbf59d2a85"
+    },
+    "java": {
+      "tag": "maven:3.9-eclipse-temurin-21",
+      "image": "maven@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320"
+    },
+    "kotlin": {
+      "tag": "gradle:8.14-jdk21",
+      "image": "gradle@sha256:fa192d8429108392649083b819ace29e681911dfed35ec3899dd3a652fa75e1e"
+    },
+    "csharp": {
+      "tag": "mcr.microsoft.com/dotnet/sdk:10.0",
+      "image": "mcr.microsoft.com/dotnet/sdk@sha256:35d40304542c8689331f8cab17c65926cdf48fe711e289321d71924b230a7d29"
+    },
+    "typescript": {
+      "tag": "node:24-bookworm-slim",
+      "image": "node@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df"
+    },
+    "rust": {
+      "tag": "rust:1.94-bookworm",
+      "image": "rust@sha256:6ae102bdbf528294bc79ad6e1fae682f6f7c2a6e6621506ba959f9685b308a55"
+    },
+    "python": {
+      "tag": "python:3.12-slim-bookworm",
+      "image": "python@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e"
+    }
+  }
+}
