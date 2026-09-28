@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "kind": "planning-package-identities",
+  "checkedAt": "2026-09-27T06:29:08Z",
+  "github": {
+    "organization": "reacon-io",
+    "owner": "reacon-achazal",
+    "plan": "Team",
+    "seats": 1,
+    "verification": "Signed-in browser: organization People and Billing pages"
+  },
+  "license": "Apache-2.0",
+  "licenseApproval": "Explicitly accepted by user; applies to new SDKs, not backend relicensing",
+  "namingAuthority": "User delegated package-name selection and collision resolution to implementation",
+  "availabilityCaveat": "Public registry lookup found no published entries for the selected package names. This does not reserve names or prove namespace ownership, absence of private packages, or eligibility under registry naming policies. Registration and first publication remain implementation work.",
+  "packages": [
+    {
+      "id": "typescript",
+      "languages": [
+        "TypeScript",
+        "JavaScript"
+      ],
+      "repository": "reacon-io/reacon-typescript",
+      "registry": "npm",
+      "package": "@reacon-io/sdk",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://registry.npmjs.org/@reacon-io%2Fsdk",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "Account MFA, first tested package publication, workflow trusted publisher, and clean install verification",
+      "scopeOwnership": {
+        "status": "created-and-verified",
+        "organization": "reacon-io",
+        "owner": "reacon-achazal",
+        "plan": "Free (public packages)",
+        "verifiedOn": "2026-09-27",
+        "evidence": "https://www.npmjs.com/settings/reacon-io/members"
+      }
+    },
+    {
+      "id": "python",
+      "languages": [
+        "Python"
+      ],
+      "repository": "reacon-io/reacon-python",
+      "registry": "PyPI",
+      "package": "reacon-sdk",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://pypi.org/pypi/reacon-sdk/json",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "project bootstrap/trusted publisher"
+    },
+    {
+      "id": "go",
+      "languages": [
+        "Go"
+      ],
+      "repository": "reacon-io/reacon-go",
+      "registry": "Go modules",
+      "package": "github.com/reacon-io/reacon-go",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://api.github.com/orgs/reacon-io/repos?per_page=100",
+        "httpStatus": 200,
+        "result": "no-public-repository-listed"
+      },
+      "remainingSetup": "repository creation; public response listed no repositories"
+    },
+    {
+      "id": "rust",
+      "languages": [
+        "Rust"
+      ],
+      "repository": "reacon-io/reacon-rust",
+      "registry": "crates.io",
+      "package": "reacon-sdk",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://crates.io/api/v1/crates/reacon-sdk",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "crate bootstrap and owner configuration"
+    },
+    {
+      "id": "php",
+      "languages": [
+        "PHP"
+      ],
+      "repository": "reacon-io/reacon-php",
+      "registry": "Packagist",
+      "package": "reacon-io/sdk",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://packagist.org/packages/reacon-io/sdk.json",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "package registration and repository integration"
+    },
+    {
+      "id": "ruby",
+      "languages": [
+        "Ruby"
+      ],
+      "repository": "reacon-io/reacon-ruby",
+      "registry": "RubyGems",
+      "package": "reacon-sdk",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://rubygems.org/api/v1/gems/reacon-sdk.json",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "gem bootstrap/trusted publisher"
+    },
+    {
+      "id": "java",
+      "languages": [
+        "Java"
+      ],
+      "repository": "reacon-io/reacon-java",
+      "registry": "Maven Central",
+      "package": "io.reacon:reacon-java",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://repo.maven.apache.org/maven2/io/reacon/reacon-java/maven-metadata.xml",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "io.reacon namespace verification and signing"
+    },
+    {
+      "id": "kotlin",
+      "languages": [
+        "Kotlin"
+      ],
+      "repository": "reacon-io/reacon-kotlin",
+      "registry": "Maven Central",
+      "package": "io.reacon:reacon-kotlin",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://repo.maven.apache.org/maven2/io/reacon/reacon-kotlin/maven-metadata.xml",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "io.reacon namespace verification and signing"
+    },
+    {
+      "id": "csharp",
+      "languages": [
+        "C#"
+      ],
+      "repository": "reacon-io/reacon-csharp",
+      "registry": "NuGet",
+      "package": "Reacon.Sdk",
+      "license": "Apache-2.0",
+      "publicationStatus": "not-published",
+      "availabilityCheck": {
+        "url": "https://api.nuget.org/v3-flatcontainer/reacon.sdk/index.json",
+        "httpStatus": 404,
+        "result": "no-published-entry"
+      },
+      "remainingSetup": "package/prefix ownership and trusted publishing"
+    }
+  ]
+}

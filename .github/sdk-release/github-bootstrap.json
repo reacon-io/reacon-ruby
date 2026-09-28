@@ -1,0 +1,448 @@
+{
+  "formatVersion": 1,
+  "observedOn": "2026-09-27",
+  "observationMethod": "Signed-in GitHub browser, reacon-achazal; each repository creation and resulting private repository page verified",
+  "organization": "reacon-io",
+  "organizationId": 334414696,
+  "plan": "Team",
+  "administrator": "reacon-achazal",
+  "releaseStateRepository": {
+    "name": "reacon-sdk-releases",
+    "visibility": "private",
+    "defaultBranch": "main",
+    "initialCommit": "a9a9d44f9b932ab03e99f0b0c2581303c846251c",
+    "initialContents": [
+      "README.md"
+    ],
+    "repositoryId": 1390806251
+  },
+  "sdkRepositories": [
+    {
+      "family": "typescript",
+      "name": "reacon-typescript",
+      "initialCommit": "a481d0040701bdfa725c7ebc5288c859878cc5af",
+      "initialContents": [
+        "README.md",
+        "LICENSE"
+      ],
+      "repositoryId": 1390807111,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "b9a81e0f1004d344a9ca65bbe05def9e0f4c062d",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-typescript/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "95ae03e9d148743bf614ced3d9c1d747daa96e75",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "95ae03e9d148743bf614ced3d9c1d747daa96e75",
+        "passed": true,
+        "report": "sdk-generation/release/typescript-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:45:46.302Z"
+      },
+      "mainCommit": "38709040091eab679d85665ea7bd188f00ca4f4f",
+      "mainCi": {
+        "commit": "38709040091eab679d85665ea7bd188f00ca4f4f",
+        "passed": true,
+        "observedAt": "2026-09-27T18:13:12.286Z",
+        "report": "sdk-generation/release/typescript-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/typescript-source-promotion.json"
+    },
+    {
+      "family": "python",
+      "name": "reacon-python",
+      "initialCommit": "78f8516ee313e68a061b9453bc05223e9f891033",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390807788,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "359526376b302227e7bdbed48b2913cdeb51f14b",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-python/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "ab62221ad559f82c9901087a4980d263e12cd222",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "ab62221ad559f82c9901087a4980d263e12cd222",
+        "passed": true,
+        "report": "sdk-generation/release/python-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:47:11.181Z"
+      },
+      "mainCommit": "0cda0f5deff7e54c2a7a3ec2b0fd04e9794fe416",
+      "mainCi": {
+        "commit": "0cda0f5deff7e54c2a7a3ec2b0fd04e9794fe416",
+        "passed": true,
+        "observedAt": "2026-09-27T18:13:12.285Z",
+        "report": "sdk-generation/release/python-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/python-source-promotion.json"
+    },
+    {
+      "family": "go",
+      "name": "reacon-go",
+      "initialCommit": "17b65cd8e63738e1bb371eae07cad391ac37e72a",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390808315,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "206c46773f1b184a2339e0634cc4e810fd869edb",
+      "privateDraftPullRequest": "https://github.com/reacon-io/reacon-go/pull/1",
+      "mainSourceMerged": true,
+      "releasesPublished": false,
+      "sdkReviewCommit": "966fa080bd480cbc49d5a7dc05114152833fb2e3",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "966fa080bd480cbc49d5a7dc05114152833fb2e3",
+        "passed": true,
+        "report": "sdk-generation/release/go-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:35:01.079Z"
+      },
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-go/pull/1",
+      "mainCommit": "882b9b0462cdada1ea574d48e80f8464755bc828",
+      "mainCi": {
+        "commit": "882b9b0462cdada1ea574d48e80f8464755bc828",
+        "passed": true,
+        "observedAt": "2026-09-27T18:13:12.434Z",
+        "report": "sdk-generation/release/go-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/go-source-promotion.json"
+    },
+    {
+      "family": "rust",
+      "name": "reacon-rust",
+      "initialCommit": "9f6b62e2ec3d8ca63518ef1a7b7ae8ee9914746e",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390808889,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "995115351cedbf01f33e3bd5ccf9924532e795fe",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-rust/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "14448cc874ed72774ca35fb5edc3c44fd48c4c35",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "14448cc874ed72774ca35fb5edc3c44fd48c4c35",
+        "passed": true,
+        "report": "sdk-generation/release/rust-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:59:03.095Z"
+      },
+      "mainCommit": "3db7a85ed41753dcb64f1e239af29fefa862b73b",
+      "mainCi": {
+        "commit": "3db7a85ed41753dcb64f1e239af29fefa862b73b",
+        "passed": true,
+        "observedAt": "2026-09-27T18:18:53.185Z",
+        "report": "sdk-generation/release/rust-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/rust-source-promotion.json"
+    },
+    {
+      "family": "php",
+      "name": "reacon-php",
+      "initialCommit": "5f1bf2497e4099a4be2fad39adf374919b8c8f9d",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390809378,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "b579654a7e398e5ef5eae0d1a8b7012e1aca3bbc",
+      "privateDraftPullRequest": "https://github.com/reacon-io/reacon-php/pull/1",
+      "mainSourceMerged": true,
+      "releasesPublished": false,
+      "sdkReviewCommit": "7833ea6f17ca2e42f6951f23359fd90d308315fb",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "7833ea6f17ca2e42f6951f23359fd90d308315fb",
+        "passed": true,
+        "report": "sdk-generation/release/php-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:34:37.212Z"
+      },
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-php/pull/1",
+      "mainCommit": "05382bd873807229a6d0db994995ff939a876158",
+      "mainCi": {
+        "commit": "05382bd873807229a6d0db994995ff939a876158",
+        "passed": true,
+        "observedAt": "2026-09-27T18:13:12.277Z",
+        "report": "sdk-generation/release/php-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/php-source-promotion.json"
+    },
+    {
+      "family": "ruby",
+      "name": "reacon-ruby",
+      "initialCommit": "b50c7c2cbae4453ea584d5f596a0d33615cb3354",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390809984,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "7f86dbe1a481de2c7028e2a31656544ac4425a27",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-ruby/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "f992a8baf0a302dd0f98f7dc62acf06621c64c93",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "f992a8baf0a302dd0f98f7dc62acf06621c64c93",
+        "passed": true,
+        "report": "sdk-generation/release/ruby-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:47:11.123Z"
+      },
+      "mainCommit": "9a7899943d4d15ba7bfa9e6ffd74dd0a90bce67d",
+      "mainCi": {
+        "commit": "9a7899943d4d15ba7bfa9e6ffd74dd0a90bce67d",
+        "passed": true,
+        "observedAt": "2026-09-27T18:15:33.221Z",
+        "report": "sdk-generation/release/ruby-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/ruby-source-promotion.json"
+    },
+    {
+      "family": "java",
+      "name": "reacon-java",
+      "initialCommit": "0a80ff3daeaf9ddc3c1812a0df4e06342be9ef5f",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390810718,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "5df350103385f43c636554d396050571ce836693",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-java/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "1ca4f231f726eacb0ae2c6cd6934a1667e48a0aa",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "1ca4f231f726eacb0ae2c6cd6934a1667e48a0aa",
+        "passed": true,
+        "report": "sdk-generation/release/java-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:50:05.074Z"
+      },
+      "mainCommit": "04d6a1cf499a9d5824b1b3694b22f912873d5463",
+      "mainCi": {
+        "commit": "04d6a1cf499a9d5824b1b3694b22f912873d5463",
+        "passed": true,
+        "observedAt": "2026-09-27T18:15:33.215Z",
+        "report": "sdk-generation/release/java-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/java-source-promotion.json"
+    },
+    {
+      "family": "kotlin",
+      "name": "reacon-kotlin",
+      "initialCommit": "38837d6408b10a19bfb5288eda4033b472b984f9",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390811441,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "9614bca16561f76a56a6cf33dc4c206058693732",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-kotlin/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "3d8dacb54cf121bfd0ef985053983f91d41d5dbb",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "3d8dacb54cf121bfd0ef985053983f91d41d5dbb",
+        "passed": true,
+        "report": "sdk-generation/release/kotlin-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:59:02.536Z"
+      },
+      "mainCommit": "30559160d59a0b05fdf0f5ef88ab15310dd8e3c6",
+      "mainCi": {
+        "commit": "30559160d59a0b05fdf0f5ef88ab15310dd8e3c6",
+        "passed": true,
+        "observedAt": "2026-09-27T18:18:53.213Z",
+        "report": "sdk-generation/release/kotlin-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/kotlin-source-promotion.json"
+    },
+    {
+      "family": "csharp",
+      "name": "reacon-csharp",
+      "initialCommit": "f160fd0f5e3d7f7ea9630b448b0b60fe1d8be101",
+      "initialContents": [
+        "README.md"
+      ],
+      "repositoryId": 1390811914,
+      "sdkSourcePushed": true,
+      "sdkSourceBranch": "codex/sdk-source-0.1.0-beta.1",
+      "sdkSourceCommit": "b41c34f0542bc08196bccd4c1d33e88ec97dafb6",
+      "sdkPullRequest": "https://github.com/reacon-io/reacon-csharp/pull/1",
+      "mainSourceMerged": true,
+      "sdkReviewCommit": "ad25eba0310611e7a735a307cfc632bbec18e247",
+      "sourceCi": {
+        "scope": "private-draft-branch",
+        "workflow": ".github/workflows/ci.yml",
+        "commit": "ad25eba0310611e7a735a307cfc632bbec18e247",
+        "passed": true,
+        "report": "sdk-generation/release/csharp-repository-ci.json",
+        "mainInstalled": true,
+        "releaseQualification": false,
+        "observedAt": "2026-09-27T17:59:02.673Z"
+      },
+      "mainCommit": "4b76a66ce1b5e4fd90d9f1fd061ece50c05443ab",
+      "mainCi": {
+        "commit": "4b76a66ce1b5e4fd90d9f1fd061ece50c05443ab",
+        "passed": true,
+        "observedAt": "2026-09-27T18:18:53.221Z",
+        "report": "sdk-generation/release/csharp-main-ci.json",
+        "releaseQualification": false
+      },
+      "promotionReport": "sdk-generation/release/csharp-source-promotion.json"
+    }
+  ],
+  "sdkRepositoryDefaults": {
+    "visibility": "private",
+    "defaultBranch": "main",
+    "sdkSourcePushed": true,
+    "releasesPublished": false
+  },
+  "releaseApp": {
+    "status": "installed-authentication-verified",
+    "desiredName": "Reacon SDK Releases",
+    "desiredSlug": "reacon-sdk-releases",
+    "registrationUrl": "https://github.com/organizations/reacon-io/settings/apps/new",
+    "owner": "reacon-io",
+    "installationSelection": "selected-repositories-only",
+    "permissions": {
+      "metadata": "read",
+      "contents": "write",
+      "pull_requests": "write",
+      "actions": "write"
+    },
+    "webhooks": false,
+    "userAuthorization": false,
+    "privateKeyStored": true,
+    "installationVerified": true,
+    "appId": 5098070,
+    "clientId": "Iv23liget0AY8Kz3UVo3",
+    "installationId": 165498005,
+    "settingsUrl": "https://github.com/organizations/reacon-io/settings/apps/reacon-sdk-releases",
+    "installationUrl": "https://github.com/organizations/reacon-io/settings/installations/165498005",
+    "installationVerificationMethod": "Signed-in installation settings: success notice, selected repository mode, exact ten names and approved permissions",
+    "authenticationVerified": true,
+    "unavailableKeyFingerprint": "SHA256:N+JRD0Z4ma3fZeVnZfWHoD49hURMk5he2ICMEs3m9io=",
+    "keyDownloadStatus": "User-downloaded replacement secured locally; Downloads copy removed after byte comparison",
+    "authenticationVerifiedAt": "2026-09-27T17:08:39.365Z",
+    "activeKeyFingerprint": "SHA256:vqaxcIt1+WFePAu/ZtiTBr5UKKLIGkiQbbGeLcMZ4VU=",
+    "activeKeyId": 4630649,
+    "keyStorage": "owner-only-local-file-outside-repository",
+    "secretStoreConfigured": false,
+    "obsoleteKeyRevoked": true,
+    "obsoleteKeyRevokedAt": "2026-09-27T17:10:16.565Z",
+    "obsoleteKeyRevocationEvidence": "Signed-in GitHub settings show only the replacement fingerprint and disable deleting the sole remaining key",
+    "ownershipAuditReport": "github-access-audit.json",
+    "ownershipAuditReportSha256": "1013916248403bf41bb709c7e16d4dec8dda016b73f568d26249bbcb66847994",
+    "stateReadReport": "github-state-read.json",
+    "stateReadReportSha256": "94c4e84f77fa42bc51dbaf19e30b5db82a71769147f93e34b5dc91cc5f56357c"
+  },
+  "protectionsConfigured": false,
+  "publisherWorkflowsConfigured": false,
+  "publishable": false,
+  "mainBranchProtection": {
+    "rulesetId": 24079930,
+    "url": "https://github.com/organizations/reacon-io/settings/rules/24079930",
+    "enforcement": "active",
+    "target": "default-branches-of-nine-sdk-repositories",
+    "releaseStateExcluded": true,
+    "pullRequestsRequired": true,
+    "requiredApprovals": 0,
+    "requiredCheck": "sdk-conformance",
+    "checkSource": "GitHub Actions (enforced by additive ruleset 24080557)",
+    "strictStatusChecks": true,
+    "blockForcePushes": true,
+    "blockDeletion": true,
+    "bypassActors": [],
+    "bypassObservationMethod": "saved signed-in organization UI",
+    "report": "sdk-generation/release/github-main-protection.json",
+    "completeReleaseProtection": false,
+    "sourceBindingSetup": {
+      "status": "active-verified",
+      "rulesetId": 24080557,
+      "url": "https://github.com/organizations/reacon-io/settings/rules/24080557",
+      "file": "sdk-generation/release/github-conformance-source.ruleset.json",
+      "expectedIntegrationId": 15368,
+      "enforcement": "active",
+      "bypassActors": [],
+      "scope": "default-branches-of-nine-sdk-repositories",
+      "verifiedBy": "saved administrator UI and per-repository effective-rule API",
+      "report": "sdk-generation/release/github-main-protection.json"
+    }
+  },
+  "tagProtection": {
+    "target": "refs/tags/v* in the nine SDK repositories",
+    "releaseStateExcluded": true,
+    "immutability": {
+      "rulesetId": 24080341,
+      "enforcement": "active",
+      "rules": [
+        "update",
+        "deletion",
+        "non_fast_forward"
+      ],
+      "bypassActors": []
+    },
+    "creation": {
+      "rulesetId": 24080398,
+      "enforcement": "active",
+      "rules": [
+        "creation"
+      ],
+      "bypassActors": [
+        {
+          "actorType": "Integration",
+          "actorId": 5098070,
+          "name": "Reacon SDK Releases",
+          "mode": "always"
+        }
+      ]
+    },
+    "bypassObservationMethod": "saved signed-in organization ruleset editor; read-only API omits bypass actors",
+    "report": "sdk-generation/release/github-main-protection.json",
+    "writeProbePerformed": false
+  },
+  "releaseEnvironments": {
+    "status": "configured-main-only",
+    "report": "sdk-generation/release/github-release-environments.json",
+    "count": 9,
+    "liveJobVerified": false
+  }
+}
