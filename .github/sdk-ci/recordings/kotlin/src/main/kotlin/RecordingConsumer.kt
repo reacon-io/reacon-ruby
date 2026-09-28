@@ -116,5 +116,6 @@ fun main(){
     File(System.getenv("REACON_RESULTS_FILE")).writeText(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(results))
     val passed=results.count{it["passed"].asBoolean()}
     println("$passed/${cases.size()} recorded responses passed through Kotlin methods")
+    results.filter{!it["passed"].asBoolean()}.forEach{System.err.println(it)}
     if(passed!=cases.size())kotlin.system.exitProcess(1)
 }

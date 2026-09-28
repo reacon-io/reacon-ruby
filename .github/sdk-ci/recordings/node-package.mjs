@@ -21,11 +21,18 @@ try {
  const installed=join(directory,'node_modules/@reacon-io/sdk');
  const metadata=JSON.parse(await readFile(join(installed,'package.json')));assert.equal(metadata.license,'Apache-2.0');
  assert.equal(metadata.version,process.env.REACON_SDK_PACKAGE_VERSION);
- const example=`import { LeadsApi, ExportLeadsRequest } from '@reacon-io/sdk';
+ const example=`import { LeadsApi, ExportLeadsRequest, MailGetPortfolioResponse200, MailGetTrackingDomainResponse200 } from '@reacon-io/sdk';
 declare const api: LeadsApi;
 const request: ExportLeadsRequest = { selectionScopes: [{ action: 'include' }] };
 const csv: Promise<string> = api.exportLeadsCsv({teamId:'synthetic-team', exportLeadsRequest:request});
 void csv;
+const portfolio: MailGetPortfolioResponse200 = { portfolio: null, suppressions: [], teams: [] };
+const tracking: MailGetTrackingDomainResponse200 = { domain: null };
+// @ts-expect-error a required nullable property must still be present
+const absentPortfolio: MailGetPortfolioResponse200 = { suppressions: [], teams: [] };
+// @ts-expect-error nullable does not make the tracking domain optional
+const absentTracking: MailGetTrackingDomainResponse200 = {};
+void [portfolio, tracking, absentPortfolio, absentTracking];
 `;
  for(const extension of ['mts','cts']){
   const file=join(directory,'consumer.'+extension);await writeFile(file,example);

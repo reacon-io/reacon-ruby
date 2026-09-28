@@ -117,6 +117,7 @@ public class JavaRecordingConsumer {
         }
         Files.write(Paths.get(System.getenv("REACON_RESULTS_FILE")),new GsonBuilder().setPrettyPrinting().create().toJson(results).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         System.out.println(passed+"/"+cases.size()+" recorded responses passed through Java methods");
+        for(JsonElement result:results) if(!result.getAsJsonObject().get("passed").getAsBoolean()) System.err.println(result);
         if(passed!=cases.size())System.exit(1);
     }
 }

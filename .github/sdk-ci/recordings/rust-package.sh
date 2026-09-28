@@ -1,5 +1,7 @@
 #!/bin/sh
 set -eu
+# Populate dependencies on a clean runner before the offline package checks.
+cargo fetch
 # Package first; the consumer sees only the unpacked crate, never /work/src.
 package_build=$(mktemp -d /results/cargo-package.XXXXXX)
 CARGO_TARGET_DIR="$package_build" cargo package --allow-dirty --no-verify --offline
@@ -15,5 +17,6 @@ test -f "$package_root/reacon-sdk-$REACON_SDK_PACKAGE_VERSION/LICENSE"
 sed -i "s|/cache/recording-crate/reacon-sdk-$REACON_SDK_PACKAGE_VERSION|$package_root/reacon-sdk-$REACON_SDK_PACKAGE_VERSION|" /results/consumer/Cargo.toml
 printf '{"sha256":"%s","directory":"%s/reacon-sdk-%s"}\n' "$digest" "$package_root" "$REACON_SDK_PACKAGE_VERSION" > /results/package.json
 host=$(rustc -vV | sed -n 's/^host: //p')
+cargo fetch --manifest-path /results/consumer/Cargo.toml
 cargo metadata --offline --filter-platform "$host" --manifest-path /results/consumer/Cargo.toml --format-version 1 > /results/cargo-metadata.json
 cargo run --offline --manifest-path /results/consumer/Cargo.toml

@@ -35,7 +35,7 @@ foreach($cases as $item) {
             $value=$method->invokeArgs($api,$args);
         } catch(ApiException $error) {
             check($error->getCode()===$item['record']['response']['status'],'Unexpected error status '.$error->getCode());
-            check($error->getCode()>=400,'Unexpected HTTP error');
+            check($error->getCode()>=400,'Unexpected HTTP error: '.$error->getCode().' '.$error->getMessage());
             check(json_decode((string)$error->getResponseBody(),true)===$item['record']['response']['body'],'Error body differs');
             $results[]=['id'=>$item['id'],'passed'=>true];continue;
         }
@@ -52,4 +52,5 @@ foreach($cases as $item) {
 }
 file_put_contents(getenv('REACON_RESULTS_FILE'),json_encode($results,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR));
 $passed=count(array_filter($results,fn($r)=>$r['passed']));echo "$passed/".count($results)." recorded responses passed through PHP methods\n";
+foreach($results as $result) if(!$result['passed']) fwrite(STDERR,json_encode($result,JSON_THROW_ON_ERROR)."\n");
 exit($passed===count($results)?0:1);
