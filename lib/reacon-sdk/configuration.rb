@@ -100,8 +100,8 @@ module Reacon
     # @return [String]
     attr_accessor :temp_folder_path
 
-    # The time limit for HTTP request in seconds.
-    # Default to 0 (never times out).
+    # Total JSON/CSV network deadline in seconds, including response body reads.
+    # Default to 30; must be finite and positive. Per-call: request_timeout.
     attr_accessor :timeout
 
     # Set this to false to skip client side validation in the operation.
@@ -173,7 +173,7 @@ module Reacon
       @ssl_client_key = nil
       @middlewares = Hash.new { |h, k| h[k] = [] }
       @configure_connection_blocks = []
-      @timeout = 60
+      @timeout = 30
       # return data as binary instead of file
       @return_binary_data = false
       @params_encoder = nil

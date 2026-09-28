@@ -70,6 +70,7 @@ try {
     child.once('error', reject); child.once('close', code => done(code ?? 1));
   });
   const buildExitCode = await runContainer(args);
+  let httpPolicy = null, pagination = null, pythonHttpPolicy = null;
   let streamExitCode = null, streamRuntime = null, streamPackageFiles = null, streamFailure = null;
   const streamModes = family === 'typescript' ? ['typescript','typescript-esm'] : [family];
   if (buildExitCode === 0) {
@@ -92,6 +93,36 @@ try {
         : {proof:JSON.parse(await readFile(resolve(streamOutput,'streaming-runtime.json')))};
       streamRuntime = installedStreamRuntimeEvidence({family,packageVersion:manifest.packageVersion,files:after,...proof});
       streamPackageFiles = after;
+      if (family === 'python') {
+        const policy = manifest.pythonHttpPolicy;
+        if (policy?.isolation !== 'retained-packages-without-source' || policy.testSha256 !== manifest.files['http-python.py'] ||
+            JSON.stringify(policy.modes) !== JSON.stringify(['async', 'sync']) || policy.minimumTests < 39) throw Error('Missing Python HTTP policy suite');
+        const modes = [];
+        for (const mode of policy.modes) {
+          const result = JSON.parse(await readFile(resolve(streamOutput, `http-${mode}.json`)));
+          if (result.mode !== mode || !Number.isSafeInteger(result.tests) || result.tests < policy.minimumTests ||
+              result.passed !== true || result.failures !== 0 || result.errors !== 0 || result.skipped !== 0 ||
+              result.dependencies?.['reacon-sdk'] !== manifest.packageVersion) throw Error('Python installed HTTP policy failed');
+          modes.push(result);
+        }
+        pythonHttpPolicy = { ...policy, packageVersion: manifest.packageVersion,
+          archiveSha256: after[`reacon_sdk-${manifest.packageVersion}-py3-none-any.whl`]?.sha256, modes };
+      }
+      if (family === 'typescript') {
+        for (const [name, reportFile, testFile, minimum] of [['httpPolicy', 'http-policy.json', 'http-typescript.test.mjs', 45], ['pagination', 'pagination.json', 'pagination-typescript.test.mjs', 16]]) {
+        const actual = JSON.parse(await readFile(resolve(streamOutput, reportFile)));
+        const policy = manifest[name];
+        if (policy?.isolation !== 'retained-packages-without-source' || policy.testSha256 !== manifest.files[testFile] ||
+            actual.testSha256 !== policy.testSha256 || actual.packageVersion !== manifest.packageVersion ||
+            actual.isolation !== policy.isolation || actual.archiveSha256 !== after[`reacon-io-sdk-${manifest.packageVersion}.tgz`]?.sha256 ||
+            JSON.stringify(policy.modes) !== JSON.stringify(['cjs','esm']) || !Number.isSafeInteger(policy.minimumTests) || policy.minimumTests < minimum ||
+            actual.modes?.length !== 2 || actual.modes.some((item, index) => item.mode !== policy.modes[index] ||
+              !Number.isSafeInteger(item.tests) || item.tests < policy.minimumTests || item.passed !== item.tests || item.failed !== 0 || item.skipped !== 0 || item.cancelled !== 0))
+          throw new Error(`Installed ${name} checks are incomplete or bind different artifacts`);
+        if (name === 'httpPolicy') httpPolicy = actual; else pagination = actual;
+        }
+      }
+
     } catch(error) {streamFailure=error.message;}
   }
   await new Promise(done => log.end(done));
@@ -125,6 +156,9 @@ try {
     recordedResponses: results, streaming: { evidence: 'synthetic-http-streaming-subset', scenarios: streamScenarios, requests: streams.observations.get(family),
       isolation: 'retained-packages-without-source', exitCode: streamExitCode, files: streamPackageFiles, runtime: streamRuntime,
       modes: streamModes.map(mode=>({mode,requests:streams.observations.get(mode)})) },
+    ...(httpPolicy ? { httpPolicy } : {}),
+    ...(pagination ? { pagination } : {}),
+    ...(pythonHttpPolicy ? { pythonHttpPolicy } : {}),
     suiteManifestSha256: hash(manifestBytes), publicRegistryInstallPassed: false, liveApiPassed: false, publishable: false };
   await writeFile(resolve(output, 'responses.json'), JSON.stringify(results, null, 2) + '\n');
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(report, null, 2) + '\n');

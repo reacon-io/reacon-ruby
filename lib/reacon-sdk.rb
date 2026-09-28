@@ -669,3 +669,5 @@ module Reacon
 end
 
 require 'reacon-sdk/verification_stream'
+
+require 'reacon-sdk/http_policy'
