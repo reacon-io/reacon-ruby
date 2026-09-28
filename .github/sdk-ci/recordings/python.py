@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import importlib.metadata
+import inspect
 import json
 import os
 import re
@@ -45,7 +46,12 @@ async def main():
             client=ApiClient(config)
             api_type=getattr(importlib.import_module('reacon_sdk.api.'+snake(item['apiClass'])),item['apiClass'])
             api=api_type(client)
-            params={snake(k):v for k,v in item['parameters'].items()}
+            signature=inspect.signature(getattr(api,snake(item['record']['operationId'])))
+            params={}
+            for key,value in item['parameters'].items():
+                name=snake(key)
+                if name not in signature.parameters and 'var_'+name in signature.parameters: name='var_'+name
+                params[name]=value
             if 'body' in item['record']['request']:
                 model_name=item['requestModel']
                 model=getattr(importlib.import_module('reacon_sdk.models.'+snake(model_name)),model_name)
@@ -75,5 +81,8 @@ async def main():
                 else: await client.close()
     with open(os.environ['REACON_RESULTS_FILE'],'w') as f: json.dump(results,f,indent=2)
     print(f'{sum(r["passed"] for r in results)}/{len(results)} recorded responses passed through {language} generated methods')
-    if not all(r['passed'] for r in results): raise SystemExit(1)
+    if not all(r['passed'] for r in results):
+        for result in results:
+            if not result['passed']: print(json.dumps(result), file=sys.stderr)
+        raise SystemExit(1)
 asyncio.run(main())
