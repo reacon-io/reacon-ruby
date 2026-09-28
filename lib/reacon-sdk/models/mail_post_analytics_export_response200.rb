@@ -82,6 +82,7 @@ module Reacon
     # List of attributes with nullable: true
     def self.openapi_nullable
       Set.new([
+        :'next_cursor',
       ])
     end
 
@@ -149,10 +150,6 @@ module Reacon
         invalid_properties.push('invalid value for "filename", filename cannot be nil.')
       end
 
-      if @next_cursor.nil?
-        invalid_properties.push('invalid value for "next_cursor", next_cursor cannot be nil.')
-      end
-
       if @row_count.nil?
         invalid_properties.push('invalid value for "row_count", row_count cannot be nil.')
       end
@@ -169,7 +166,6 @@ module Reacon
       content_type_validator = EnumAttributeValidator.new('String', ["text/csv; charset=utf-8"])
       return false unless content_type_validator.valid?(@content_type)
       return false if @filename.nil?
-      return false if @next_cursor.nil?
       return false if @row_count.nil?
       true
     end
@@ -202,16 +198,6 @@ module Reacon
       end
 
       @filename = filename
-    end
-
-    # Custom attribute writer method with validation
-    # @param [Object] next_cursor Value to be assigned
-    def next_cursor=(next_cursor)
-      if next_cursor.nil?
-        fail ArgumentError, 'next_cursor cannot be nil'
-      end
-
-      @next_cursor = next_cursor
     end
 
     # Custom attribute writer method with validation

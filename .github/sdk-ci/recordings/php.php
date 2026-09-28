@@ -2,10 +2,20 @@
 require getenv('REACON_PHP_AUTOLOAD') ?: getenv('SDK_DIRECTORY') . '/vendor/autoload.php';
 use Reacon\Sdk\{Configuration, ObjectSerializer, ApiException};
 function snake($s) { return strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $s)); }
-function canonical($value) {
-    if (is_object($value)) { $properties=get_object_vars($value); ksort($properties); return (object)array_map('canonical',$properties); }
-    if (is_array($value)) return array_map('canonical',$value);
-    if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/D',$value)) return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.u\Z');
+function canonical($value, $expected) {
+    // PHP represents typed JSON maps as associative arrays, including [] for
+    // an empty map. Preserve list order and compare every object key/value.
+    if (is_object($expected) && (is_object($value) || is_array($value))) {
+        $properties=is_object($value) ? get_object_vars($value) : $value;
+        ksort($properties); $result=[];
+        foreach($properties as $key=>$entry) $result[$key]=canonical($entry, property_exists($expected,(string)$key) ? $expected->{$key} : null);
+        return (object)$result;
+    }
+    if (is_array($value) && is_array($expected)) {
+        foreach($value as $key=>$entry) $value[$key]=canonical($entry,$expected[$key]??null);
+        return $value;
+    }
+    if (is_string($value) && preg_match('/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$/D',$value)) return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\\TH:i:s.u\\Z');
     return $value;
 }
 function check($condition,$message) { if (!$condition) throw new Exception($message); }
@@ -46,7 +56,7 @@ foreach($cases as $item) {
         // PHP associative decoding loses empty-object identity; reload expected from original JSON.
         $rawCases=json_decode(file_get_contents(getenv('REACON_CASES_FILE')));
         foreach($rawCases as $raw) if($raw->id===$item['id']) $expected=$raw->record->response->body;
-        check(json_encode(canonical($actual),JSON_THROW_ON_ERROR)===json_encode(canonical($expected),JSON_THROW_ON_ERROR),'Decoded response differs: '.json_encode($actual));
+        check(json_encode(canonical($actual,$expected),JSON_THROW_ON_ERROR)===json_encode(canonical($expected,$expected),JSON_THROW_ON_ERROR),'Decoded response differs: '.json_encode($actual));
         $results[]=['id'=>$item['id'],'passed'=>true];
     }catch(Throwable $error){$results[]=['id'=>$item['id'],'passed'=>false,'error'=>$error->getMessage()];}
 }

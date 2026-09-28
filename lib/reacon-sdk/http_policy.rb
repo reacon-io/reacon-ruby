@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 # Copyright Reacon contributors. Licensed under Apache-2.0.
 require 'timeout'
+require 'date'
+require 'time'
 
 module Reacon
   class RequestTimeoutError < StandardError
@@ -112,6 +114,19 @@ module Reacon
   end
 
   module HttpClientPolicy
+    # JSON's default Time encoder emits a human-readable, non-RFC3339 string.
+    # Traverse nested generated models/maps so every date uses its wire format.
+    def object_to_hash(value)
+      case value
+      when Time then value.getutc.iso8601(9).sub(/\.0+Z$/, 'Z').sub(/(\.\d*?[1-9])0+Z$/, '\\1Z')
+      when DateTime then value.new_offset(0).iso8601(9).sub('+00:00', 'Z').sub(/\.0+Z$/, 'Z').sub(/(\.\d*?[1-9])0+Z$/, '\\1Z')
+      when Date then value.iso8601
+      when Array then value.map { |item| object_to_hash(item) }
+      when Hash then value.transform_values { |item| object_to_hash(item) }
+      else value.respond_to?(:to_hash) ? object_to_hash(value.to_hash) : value
+      end
+    end
+
     def call_api(http_method, path, opts = {})
       seconds = HttpPolicy.seconds(opts.fetch(:request_timeout, config.timeout))
       stream = nil
