@@ -992,8 +992,11 @@ async function inspectRetainedRubyRust({
     const image = config.images[family2 === "ruby" ? "ruby" : "python"].image;
     if (!/^[a-z0-9/.-]+@sha256:[a-f0-9]{64}$/.test(image)) throw new Error("Inspector image must be pinned by digest");
     const script = family2 === "ruby" ? "inspect-ruby-package.rb" : "inspect-rust-package.py";
+    const environment = { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: directory2, LANG: "C.UTF-8" };
+    await runProcess({ command: "/usr/bin/docker", args: ["pull", image], cwd: directory2, env: environment });
     const args = [
       "run",
+      "--pull=never",
       "--rm",
       "--network=none",
       "--read-only",
@@ -1020,7 +1023,7 @@ async function inspectRetainedRubyRust({
       command: "/usr/bin/docker",
       args,
       cwd: directory2,
-      env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: directory2, LANG: "C.UTF-8" }
+      env: environment
     }));
     return { ...result, inspectorImage: image };
   } finally {
@@ -2012,9 +2015,20 @@ async function runFilePublicationWorker({
         "No current durable publication intent",
         "npm would publish a different package identity",
         "Bootstrap credential must belong to the dedicated Reacon work account",
-        "Initial npm registration requires a prerelease and explicit bootstrap credential"
+        "Initial npm registration requires a prerelease and explicit bootstrap credential",
+        "Native publisher command failed; details suppressed to protect credentials",
+        "Gem metadata or toolchain mismatch",
+        "Invalid archive inspector result",
+        "Unexpected trusted-publisher credential binding or lifetime",
+        "Unexpected registry token scope or lifetime",
+        "GitHub OIDC claims do not match the current company release job",
+        "Registry OIDC token request failed; details suppressed",
+        "Trusted-publisher request failed; response details suppressed",
+        "Invalid trusted-publisher response; details suppressed",
+        "Archive upload outcome is unknown; reconcile the registry"
       ];
-      uploadFailure = error.publicationDiagnostic ?? { stage: "upload", reason: known.includes(error.message) ? error.message : "Unrecognized upload error; details suppressed" };
+      const recognizedStatus = /^(?:Trusted-publisher request returned HTTP [1-5][0-9]{2}|Archive upload returned HTTP [1-5][0-9]{2}; reconcile the registry)$/.test(error.message);
+      uploadFailure = error.publicationDiagnostic ?? { stage: "upload", reason: known.includes(error.message) || recognizedStatus ? error.message : "Unrecognized upload error; details suppressed" };
     }
   }
   let after = uploadAttempted ? await registry.inspect(subject) : before;
