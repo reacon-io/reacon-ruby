@@ -180,6 +180,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "{passed}/{} recorded responses passed through Rust methods",
         results.len()
     );
+    for result in results.iter().filter(|value| value["passed"] != true) {
+        eprintln!("{}", result);
+    }
     if passed != results.len() {
         std::process::exit(1);
     }

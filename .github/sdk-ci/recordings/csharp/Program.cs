@@ -110,7 +110,7 @@ foreach(var item in cases.RootElement.EnumerateArray()) {
         var task=(Task)method.Invoke(api,arguments)!;await task;
         var response=(IApiResponse)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Check((int)response.StatusCode==expected.GetProperty("status").GetInt32(),"HTTP status differs");
-        var decoder=(int)response.StatusCode switch {200=>"Ok",201=>"Created",400=>"BadRequest",401=>"Unauthorized",404=>"NotFound",_=>throw new Exception("Add explicit status decoder")};
+        var decoder=(int)response.StatusCode switch {200=>"Ok",201=>"Created",400=>"BadRequest",401=>"Unauthorized",404=>"NotFound",409=>"Conflict",_=>throw new Exception("Add explicit status decoder")};
         var body=response.GetType().GetMethod(decoder,Type.EmptyTypes)!.Invoke(response,null);
         var actual=JsonSerializer.SerializeToElement(body,body?.GetType()??typeof(object),options);
         Check(Equal(actual,expected.GetProperty("body")),"Decoded response differs: "+actual.GetRawText());
@@ -119,6 +119,7 @@ foreach(var item in cases.RootElement.EnumerateArray()) {
 }
 File.WriteAllText(Environment.GetEnvironmentVariable("REACON_RESULTS_FILE")!,JsonSerializer.Serialize(results,new JsonSerializerOptions{WriteIndented=true}));
 Console.WriteLine($"{passed}/{cases.RootElement.GetArrayLength()} recorded responses passed through C# methods");
+foreach(var result in results){var json=JsonSerializer.SerializeToElement(result);if(!json.GetProperty("passed").GetBoolean())Console.Error.WriteLine(json.GetRawText());}
 return passed==cases.RootElement.GetArrayLength()?0:1;
 
 sealed class MissingToken:ApiKeyToken {

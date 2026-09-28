@@ -264,6 +264,7 @@ lib/reacon-sdk/models/mail_get_portfolio_overview_response200.rb
 lib/reacon-sdk/models/mail_get_portfolio_response200.rb
 lib/reacon-sdk/models/mail_get_portfolio_response200_any_of.rb
 lib/reacon-sdk/models/mail_get_portfolio_response200_any_of1.rb
+lib/reacon-sdk/models/mail_get_portfolio_response200_portfolio.rb
 lib/reacon-sdk/models/mail_get_queue_response200.rb
 lib/reacon-sdk/models/mail_get_reply_automations_response200.rb
 lib/reacon-sdk/models/mail_get_signatures_response200.rb
@@ -346,7 +347,7 @@ lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_request.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_any_of.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_any_of1.rb
-lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_any_of_campaign.rb
+lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_campaign.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_state_request.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_state_response200.rb
 lib/reacon-sdk/models/mail_post_campaigns_request.rb

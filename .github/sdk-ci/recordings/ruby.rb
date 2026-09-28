@@ -40,7 +40,8 @@ cases.each do |item|
     api=Reacon.const_get(item['apiClass']).new(Reacon::ApiClient.new(config))
     params=item['parameters'].to_h { |k,v| [snake(k).to_sym,v] }
     if item['record']['request'].key?('body')
-      params[snake(item['requestModel']).to_sym]=Reacon.const_get(item['requestModel']).build_from_hash(item['record']['request']['body'])
+      model=Reacon.const_get(item['requestModel'])
+      params[snake(item['requestModel']).to_sym]=model.respond_to?(:openapi_any_of) ? model.build(item['record']['request']['body'].transform_keys(&:to_sym)) : model.build_from_hash(item['record']['request']['body'])
     end
     csv=item['record']['operationId']=='exportLeads' && item['record']['request'].dig('body','format')=='csv'
     if csv
@@ -72,4 +73,5 @@ cases.each do |item|
 end
 File.write(ENV.fetch('REACON_RESULTS_FILE'),JSON.pretty_generate(results))
 puts "#{results.count { |r| r[:passed] }}/#{results.size} recorded responses passed through Ruby methods"
+results.reject { |r| r[:passed] }.each { |failure| warn JSON.generate(failure) }
 exit(results.all? { |r| r[:passed] } ? 0 : 1)

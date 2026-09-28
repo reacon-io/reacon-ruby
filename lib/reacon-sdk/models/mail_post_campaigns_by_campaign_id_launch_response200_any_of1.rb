@@ -43,7 +43,7 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'campaign' => :'MailPostCampaignsByCampaignIdLaunchResponse200AnyOfCampaign',
+        :'campaign' => :'MailPostCampaignsByCampaignIdLaunchResponse200Campaign',
         :'draft' => :'MailCampaignDraftRecord',
         :'sequences' => :'Array<MailSequenceRunRecord>'
       }

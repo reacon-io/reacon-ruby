@@ -1,7 +1,13 @@
 import { operationIndex } from '../../../scripts/public-api/lib/recordings.mjs';
 export function buildCases(records, contract) {
   const index = operationIndex(contract);
-  return records.map(record => {
+  // Deliberately malformed bodies document the server's validation response.
+  // Typed SDK constructors may correctly reject them before an HTTP request;
+  // they are not wire replay cases. Valid requests returning errors remain.
+  // Exclusions are enumerated in recordingCoverage().sdkReplay below.
+  for (const record of records) if (record.request.validation === 'intentional-invalid' &&
+    !(record.response.status >= 400 && record.response.status < 500)) throw new Error('Invalid-request recording must demonstrate client error rejection');
+  return records.filter(record => record.request.validation !== 'intentional-invalid').map(record => {
     const { operation, path } = index.get(record.operationId);
     const params = { ...record.request.query };
     const actual = record.request.path.split('/');

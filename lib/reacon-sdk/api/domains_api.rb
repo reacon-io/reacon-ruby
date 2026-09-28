@@ -146,7 +146,7 @@ module Reacon
     end
 
     # Count known emails for a domain
-    # Returns personal, generic and total email counts for the domain. Authenticate with X-API-Key.
+    # Returns personal, generic and total known email counts for the domain. Authenticate with X-API-Key. This endpoint reports counts only; it does not reveal email addresses. The recorded example uses a reserved example.invalid domain with zero known emails.
     # @param domain [String] 
     # @param [Hash] opts the optional parameters
     # @return [DomainCounts]
@@ -156,7 +156,7 @@ module Reacon
     end
 
     # Count known emails for a domain
-    # Returns personal, generic and total email counts for the domain. Authenticate with X-API-Key.
+    # Returns personal, generic and total known email counts for the domain. Authenticate with X-API-Key. This endpoint reports counts only; it does not reveal email addresses. The recorded example uses a reserved example.invalid domain with zero known emails.
     # @param domain [String] 
     # @param [Hash] opts the optional parameters
     # @return [Array<(DomainCounts, Integer, Hash)>] DomainCounts data, response status code and response headers
