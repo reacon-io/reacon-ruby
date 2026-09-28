@@ -148,6 +148,7 @@ lib/reacon-sdk/models/inspect_excel_workbook_request.rb
 lib/reacon-sdk/models/inspect_google_sheet_request.rb
 lib/reacon-sdk/models/integration_capability_response.rb
 lib/reacon-sdk/models/integration_capability_response_output.rb
+lib/reacon-sdk/models/integration_capability_response_output_non_null.rb
 lib/reacon-sdk/models/integration_connection.rb
 lib/reacon-sdk/models/integration_connection_health.rb
 lib/reacon-sdk/models/integration_connection_list.rb

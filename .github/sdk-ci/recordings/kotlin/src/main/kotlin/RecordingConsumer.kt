@@ -21,6 +21,21 @@ fun equalJson(a: JsonNode,b: JsonNode):Boolean = when {
     else -> a==b
 }
 fun main(){
+    for (input in listOf("{}", "{\"limit\":2,\"listId\":\"00000000-0000-4000-8000-000000000001\"}", "{\"domain\":\"example.invalid\"}", "{\"email\":\"sdk@example.invalid\",\"idempotencyKey\":\"synthetic-regression-1\",\"firstName\":\"SDK\"}")) {
+        val value=mapper.readValue(input,ProductToolRequestInput::class.java)
+        check(equalJson(mapper.valueToTree(value),mapper.readTree(input))) { "Product input lost fields" }
+    }
+    for (input in listOf("null", "[]", "{\"unknown\":true}", "{\"domain\":\"example.invalid\",\"unknown\":true}", "{\"recipientId\":\"00000000-0000-4000-8000-000000000001\"}")) {
+        check(runCatching { mapper.readValue(input,ProductToolRequestInput::class.java) }.isFailure) { "Invalid product input accepted" }
+    }
+    for (model in listOf(MailCadenceNode::class.java, MailPostCadencesRequestNodesInner::class.java)) {
+        for (input in listOf("{\"id\":\"start\",\"name\":\"Start\",\"kind\":\"start\",\"nextNodeId\":\"stop\"}", "{\"id\":\"stop\",\"name\":\"Stop\",\"kind\":\"stop\",\"outcome\":\"Fixture\"}")) {
+            check(equalJson(mapper.valueToTree(mapper.readValue(input,model)),mapper.readTree(input))) { "Cadence variant lost fields" }
+        }
+        for (input in listOf("{\"id\":\"start\",\"kind\":\"start\"}", "{\"id\":\"node\",\"kind\":\"unknown\"}")) {
+            check(runCatching { mapper.readValue(input,model) }.isFailure) { "Invalid cadence accepted" }
+        }
+    }
     val location=ApiClient::class.java.protectionDomain.codeSource.location.path
     val version=System.getenv("REACON_SDK_PACKAGE_VERSION")
     check(java.nio.file.Files.mismatch(java.nio.file.Path.of(location),java.nio.file.Path.of("/results/artifacts/reacon-kotlin-$version.jar")) == -1L) { "Retained Kotlin artifact differs from installed JAR" }

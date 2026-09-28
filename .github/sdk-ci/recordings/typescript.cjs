@@ -9,6 +9,14 @@ function toWire(schema, value) {
   return value;
 }
 (async () => {
+  // Native union regressions: overlapping shapes must never discard supplied
+  // fields, and the empty input is a real alternative, not a permissive map.
+  for (const input of [{}, {limit: 2, listId: '00000000-0000-4000-8000-000000000001'}, {domain: 'example.invalid'}, {email: 'sdk@example.invalid', idempotencyKey: 'synthetic-regression-1', firstName: 'SDK'}, {sequenceId: '00000000-0000-4000-8000-000000000001', idempotencyKey: 'synthetic-regression-2', recipients: [{email: 'sdk@example.invalid'}]}]) {
+    assert.deepEqual(JSON.parse(JSON.stringify(sdk.ProductToolRequestInputToJSON(sdk.ProductToolRequestInputFromJSON(input)))), input);
+  }
+  for (const input of [null, [], {unknown: true}, {domain: 'example.invalid', unknown: true}, {recipientId: '00000000-0000-4000-8000-000000000001'}]) {
+    assert.throws(() => sdk.ProductToolRequestInputFromJSON(input), /Product tool input/);
+  }
   const results = [];
   for (const item of cases) {
     try {

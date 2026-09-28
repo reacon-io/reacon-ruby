@@ -19,4 +19,5 @@ printf '{"sha256":"%s","directory":"%s/reacon-sdk-%s"}\n' "$digest" "$package_ro
 host=$(rustc -vV | sed -n 's/^host: //p')
 cargo fetch --manifest-path /results/consumer/Cargo.toml
 cargo metadata --offline --filter-platform "$host" --manifest-path /results/consumer/Cargo.toml --format-version 1 > /results/cargo-metadata.json
+cargo test --offline --manifest-path /results/consumer/Cargo.toml
 cargo run --offline --manifest-path /results/consumer/Cargo.toml

@@ -70,7 +70,7 @@ module Reacon
         :'estimated_credits' => :'Integer',
         :'execution_id' => :'String',
         :'mode' => :'String',
-        :'output' => :'IntegrationCapabilityResponseOutput',
+        :'output' => :'IntegrationCapabilityResponseOutputNonNull',
         :'replay' => :'Boolean'
       }
     end
@@ -78,6 +78,7 @@ module Reacon
     # List of attributes with nullable: true
     def self.openapi_nullable
       Set.new([
+        :'output',
       ])
     end
 
@@ -142,7 +143,7 @@ module Reacon
       if attributes.key?(:'output')
         self.output = attributes[:'output']
       else
-        self.output = nil
+        fail ArgumentError, 'output is required'
       end
 
       if attributes.key?(:'replay')
@@ -185,7 +186,7 @@ module Reacon
         invalid_properties.push('invalid value for "mode", mode cannot be nil.')
       end
 
-      if @output.nil?
+      unless instance_variable_defined?(:@output)
         invalid_properties.push('invalid value for "output", output cannot be nil.')
       end
 
@@ -207,7 +208,7 @@ module Reacon
       return false if @estimated_credits.nil?
       return false if @execution_id.nil?
       return false if @mode.nil?
-      return false if @output.nil?
+      return false unless instance_variable_defined?(:@output)
       return false if @replay.nil?
       true
     end
@@ -285,9 +286,6 @@ module Reacon
     # Custom attribute writer method with validation
     # @param [Object] output Value to be assigned
     def output=(output)
-      if output.nil?
-        fail ArgumentError, 'output cannot be nil'
-      end
 
       @output = output
     end

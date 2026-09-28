@@ -14,28 +14,29 @@ require 'date'
 require 'time'
 
 module Reacon
-  module MailPostCampaignsByCampaignIdLaunchResponse200
+  module IntegrationCapabilityResponseOutputNonNull
     class << self
-      # List of class defined in anyOf (OpenAPI v3)
-      def openapi_any_of
+      # List of class defined in oneOf (OpenAPI v3)
+      def openapi_one_of
         [
-          :'MailPostCampaignsByCampaignIdLaunchResponse200AnyOf',
-          :'MailPostCampaignsByCampaignIdLaunchResponse200AnyOf1'
+          :'CapabilityDomainSearch',
+          :'CapabilityEmailFound',
+          :'CapabilityEmailVerified'
         ]
       end
 
       # Builds the object
-      # @param [Mixed] Data to be matched against the list of anyOf items
+      # @param [Mixed] Data to be matched against the list of oneOf items
       # @return [Object] Returns the model or the data itself
       def build(data)
-        data = data.transform_keys(&:to_sym) if data.is_a?(Hash)
-        # Go through the list of anyOf items and attempt to identify the appropriate one.
+        # Go through the list of oneOf items and attempt to identify the appropriate one.
         # Note:
+        # - We do not attempt to check whether exactly one item matches.
         # - No advanced validation of types in some cases (e.g. "x: { type: string }" will happily match { x: 123 })
         #   due to the way the deserialization is made in the base_object template (it just casts without verifying).
         # - TODO: scalar values are de facto behaving as if they were nullable.
         # - TODO: logging when debugging is set.
-        openapi_any_of.each do |klass|
+        openapi_one_of.each do |klass|
           begin
             next if klass == :AnyType # "nullable: true"
             return find_and_cast_into_type(klass, data)
@@ -43,7 +44,7 @@ module Reacon
           end
         end
 
-        openapi_any_of.include?(:AnyType) ? data : nil
+        openapi_one_of.include?(:AnyType) ? data : nil
       end
 
       private
@@ -82,7 +83,7 @@ module Reacon
         else # model
           const = Reacon.const_get(klass)
           if const
-            if const.respond_to?(:openapi_any_of) # nested anyOf model
+            if const.respond_to?(:openapi_one_of) # nested oneOf model
               model = const.build(data)
               return model if model
             else
