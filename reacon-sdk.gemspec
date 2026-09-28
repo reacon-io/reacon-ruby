@@ -29,7 +29,9 @@ Gem::Specification.new do |s|
   s.metadata    = {}
 
   s.add_runtime_dependency 'event_stream_parser', '= 1.0.0'
-  s.add_runtime_dependency 'faraday', '>= 1.0.1', '< 3.0'
+  s.add_runtime_dependency 'faraday', '>= 2.14.4', '< 3.0'
+  s.add_runtime_dependency 'faraday-net_http', '>= 3.4.4', '< 4.0'
+  s.add_runtime_dependency 'net-http', '>= 0.9.1', '< 1.0'
   s.add_runtime_dependency 'faraday-multipart'
   s.add_runtime_dependency 'marcel'
 

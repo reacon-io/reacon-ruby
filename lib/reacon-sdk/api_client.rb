@@ -221,7 +221,10 @@ module Reacon
         basic_auth(conn)
         config.configure_middleware(conn)
         yield(conn) if block_given?
-        conn.adapter(Faraday.default_adapter)
+        conn.adapter(:net_http) do |http|
+          http.max_retries = 0
+          http.ignore_eof = false
+        end
         config.configure_connection(conn)
       end
     end
@@ -275,7 +278,7 @@ module Reacon
       fail "Content-Type is not supported: #{content_type}" unless json_mime?(content_type)
 
       begin
-        data = JSON.parse("[#{body}]", :symbolize_names => true)[0]
+        data = JSON.parse(body, :symbolize_names => true)
       rescue JSON::ParserError => e
         if %w(String Date Time).include?(return_type)
           data = body

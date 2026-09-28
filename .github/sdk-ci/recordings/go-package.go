@@ -33,13 +33,14 @@ func command(directory string, args ...string) {
 func main() {
 	const module = "github.com/reacon-io/reacon-go"
 	version := "v" + os.Getenv("REACON_SDK_PACKAGE_VERSION")
-	const root = "/cache/recording-package-go"
+	// Go may cache a module's file inventory as immutable for its version/path.
+	// Development generation can reuse a version while adding runtime files, so
+	// each native installation needs a new module-cache path, not an in-place reset.
+	root, err := os.MkdirTemp("/cache", "recording-package-go-")
+	must(err)
 	source := os.Getenv("SDK_DIRECTORY")
 	must(os.Setenv("GOMODCACHE", root+"/modules"))
 	must(os.Setenv("GOWORK", "off"))
-	command(source, "go", "clean", "-modcache")
-	must(os.RemoveAll(root))
-	must(os.MkdirAll(root, 0755))
 	prefix := root + "/proxy/" + module + "/@v/"
 	mod, err := os.ReadFile(source + "/go.mod")
 	must(err)
