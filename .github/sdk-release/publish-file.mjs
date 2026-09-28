@@ -1090,8 +1090,20 @@ function rubyRustUploader({
           throw new Error("Archive upload outcome is unknown; reconcile the registry");
         }
         if (!response.ok) {
-          await response.body?.cancel();
-          throw new Error(`Archive upload returned HTTP ${response.status}; reconcile the registry`);
+          const chunks = [];
+          let length = 0;
+          try {
+            for await (const chunk of response.body) {
+              length += chunk.length;
+              if (length > 16384) break;
+              chunks.push(chunk);
+            }
+          } catch {
+          }
+          const detail = Buffer.concat(chunks).toString("utf8").split(credential.token).join("[redacted]").replace(/(?:npm_|gh[sopur]_)[A-Za-z0-9_]+/g, "[redacted]").replace(/eyJ[A-Za-z0-9_.-]+/g, "[redacted]").replace(/[A-Za-z0-9_+/=-]{40,}/g, "[redacted]").slice(0, 2e3);
+          const error = new Error(`Archive upload returned HTTP ${response.status}; reconcile the registry`);
+          error.publicationDiagnostic = { stage: "registry-upload", status: response.status, reason: error.message, detail };
+          throw error;
         }
         if (family2 === "rust") {
           const chunks = [];
