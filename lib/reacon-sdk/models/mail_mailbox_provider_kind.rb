@@ -29,6 +29,7 @@ module Reacon
       # @param [Mixed] Data to be matched against the list of anyOf items
       # @return [Object] Returns the model or the data itself
       def build(data)
+        data = data.transform_keys(&:to_sym) if data.is_a?(Hash)
         # Go through the list of anyOf items and attempt to identify the appropriate one.
         # Note:
         # - No advanced validation of types in some cases (e.g. "x: { type: string }" will happily match { x: 123 })

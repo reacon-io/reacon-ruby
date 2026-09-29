@@ -7,6 +7,7 @@ import os
 import re
 import sys
 from datetime import datetime, date, timezone
+from uuid import UUID
 from reacon_sdk import ApiClient, Configuration
 from reacon_sdk.exceptions import ApiException
 from reacon_sdk.sync_helper import run_sync
@@ -23,6 +24,7 @@ def wire(value):
     if hasattr(value, 'to_dict'): return wire(value.to_dict())
     if isinstance(value, datetime): return value.astimezone(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00','Z')
     if isinstance(value, date): return value.isoformat()
+    if isinstance(value, UUID): return str(value)
     return value
 
 async def main():

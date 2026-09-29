@@ -24,6 +24,29 @@ check(json_encode(ObjectSerializer::sanitizeForSerialization($patch))==='{"perso
 $nullable=new Reacon\Sdk\Model\MailGetTrackingDomainResponse200(['domain'=>null]);
 check($nullable->valid(),'Required explicit null must be valid');
 check(!(new Reacon\Sdk\Model\MailGetTrackingDomainResponse200())->valid(),'Missing required nullable field must be invalid');
+// Preserve JSON object/list identity in requests as well as responses.
+$rawCases=json_decode(file_get_contents(getenv('REACON_CASES_FILE')),false,512,JSON_THROW_ON_ERROR);
+$rawById=[]; foreach($rawCases as $raw) $rawById[$raw->id]=$raw;
+foreach (['{}','{"limit":2,"listId":"00000000-0000-4000-8000-000000000001"}','{"domain":"example.invalid"}','{"email":"sdk@example.invalid","idempotencyKey":"synthetic-regression-1","firstName":"SDK"}'] as $json) {
+    $input=json_decode($json);
+    $value=ObjectSerializer::deserialize($input,Reacon\Sdk\Model\ProductToolRequestInput::class);
+    check(json_encode(canonical(ObjectSerializer::sanitizeForSerialization($value),$input))===json_encode(canonical($input,$input)), 'Product input union lost fields');
+}
+foreach (['null','[]','{"unknown":true}','{"domain":"example.invalid","unknown":true}','{"recipientId":"00000000-0000-4000-8000-000000000001"}'] as $json) {
+    $rejected=false;
+    try { ObjectSerializer::deserialize(json_decode($json),Reacon\Sdk\Model\ProductToolRequestInput::class); } catch (InvalidArgumentException $error) { $rejected=true; }
+    check($rejected,'Invalid product input accepted: '.$json);
+}
+foreach ([Reacon\Sdk\Model\MailCadenceNode::class,Reacon\Sdk\Model\MailPostCadencesRequestNodesInner::class] as $model) {
+    foreach (['{"id":"start","name":"Start","kind":"start","nextNodeId":"stop"}','{"id":"stop","name":"Stop","kind":"stop","outcome":"Fixture"}'] as $json) {
+        $input=json_decode($json);$value=ObjectSerializer::deserialize($input,$model);
+        check(json_encode(canonical(ObjectSerializer::sanitizeForSerialization($value),$input))===json_encode(canonical($input,$input)), 'Cadence variant lost fields');
+    }
+    foreach (['{"id":"start","kind":"start"}','{"id":"node","kind":"unknown"}'] as $json) {
+        $rejected=false;try { ObjectSerializer::deserialize(json_decode($json),$model); } catch (InvalidArgumentException $error) { $rejected=true; }
+        check($rejected,'Invalid cadence accepted');
+    }
+}
 $cases=json_decode(file_get_contents(getenv('REACON_CASES_FILE')),true,512,JSON_THROW_ON_ERROR); $results=[];
 foreach($cases as $item) {
     try {
@@ -31,7 +54,7 @@ foreach($cases as $item) {
         if($item['record']['request']['authentication']!=='none') $config->setApiKey('X-API-Key','recording-php');
         $class='Reacon\\Sdk\\Api\\'.$item['apiClass']; $api=new $class(null,$config);
         $params=[];foreach($item['parameters'] as $key=>$value) $params[snake($key)]=$value;
-        if(array_key_exists('body',$item['record']['request'])) $params[snake($item['requestModel'])]=ObjectSerializer::deserialize(json_decode(json_encode($item['record']['request']['body'])),'Reacon\\Sdk\\Model\\'.$item['requestModel']);
+        if(array_key_exists('body',$item['record']['request'])) $params[snake($item['requestModel'])]=ObjectSerializer::deserialize($rawById[$item['id']]->record->request->body,'Reacon\\Sdk\\Model\\'.$item['requestModel']);
         $csv=$item['record']['operationId']==='exportLeads' && ($item['record']['request']['body']['format']??null)==='csv';
         if($csv) {
             $rejected=false;
@@ -54,8 +77,7 @@ foreach($cases as $item) {
         // Compare JSON values, including object/array distinction and explicit null.
         $expected=json_decode(json_encode($item['record']['response']['body'],JSON_THROW_ON_ERROR));
         // PHP associative decoding loses empty-object identity; reload expected from original JSON.
-        $rawCases=json_decode(file_get_contents(getenv('REACON_CASES_FILE')));
-        foreach($rawCases as $raw) if($raw->id===$item['id']) $expected=$raw->record->response->body;
+        $expected=$rawById[$item['id']]->record->response->body;
         check(json_encode(canonical($actual,$expected),JSON_THROW_ON_ERROR)===json_encode(canonical($expected,$expected),JSON_THROW_ON_ERROR),'Decoded response differs: '.json_encode($actual));
         $results[]=['id'=>$item['id'],'passed'=>true];
     }catch(Throwable $error){$results[]=['id'=>$item['id'],'passed'=>false,'error'=>$error->getMessage()];}
