@@ -25,9 +25,17 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.11.0
+      - name: Download approved package bytes
+        id: prebuilt
+        if: ${{ hashFiles('.github/sdk-ci/approved-package.json') != '' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/sdk-ci/approved-package.mjs
       - name: Replay reviewed responses and streaming scenarios
+        id: conformance
         env:
           REACON_SOURCE_REVISION: ${{ github.sha }}
+          REACON_PREBUILT_DIRECTORY: ${{ steps.prebuilt.outputs.directory }}
         run: node .github/sdk-ci/run.mjs
       - name: Retain conformance evidence
         if: always()
