@@ -1,8 +1,8 @@
 // sdk-generation/ci/publisher/publish-file.mjs
-import { readFile as readFile2, writeFile as writeFile2, mkdir as mkdir3, mkdtemp as mkdtemp3, rm as rm4 } from "node:fs/promises";
-import { join as join4, dirname as dirname2, resolve as resolve5 } from "node:path";
-import { tmpdir as tmpdir2 } from "node:os";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
+import { readFile as readFile3, writeFile as writeFile3, mkdir as mkdir3, mkdtemp as mkdtemp4, rm as rm5 } from "node:fs/promises";
+import { join as join5, dirname as dirname2, resolve as resolve5 } from "node:path";
+import { tmpdir as tmpdir3 } from "node:os";
+import { fileURLToPath as fileURLToPath4 } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { getIDToken, setSecret } from "@actions/core";
@@ -285,6 +285,12 @@ var PUBLICATION_UNITS = {
   kotlin: ["central"],
   csharp: ["nuget"]
 };
+function publicationUnitNames(family2, units2) {
+  const names2 = ["java", "kotlin"].includes(family2) && Object.hasOwn(units2 ?? {}, "maven") ? ["maven"] : PUBLICATION_UNITS[family2];
+  if (!names2 || !units2 || JSON.stringify(Object.keys(units2).sort()) !== JSON.stringify([...names2].sort()))
+    throw Error("Invalid publication unit set (incomplete or conflicting)");
+  return names2;
+}
 var hash2 = (value) => {
   if (!/^[a-f0-9]{64}$/.test(value ?? "")) throw new Error("Checksummed evidence is required");
   return value;
@@ -362,7 +368,7 @@ function validateReleaseState(state) {
         hash2(pkg.artifactManifestSha256);
         hash2(pkg.sourceSha256);
         hash2(pkg.testEvidenceSha256);
-        if (JSON.stringify(Object.keys(pkg.units).sort()) !== JSON.stringify([...PUBLICATION_UNITS[family2]].sort())) throw new Error("Invalid publication unit set");
+        publicationUnitNames(family2, pkg.units);
         for (const unit of Object.values(pkg.units)) {
           keys(unit, ["identitySha256", "state", "attempts", "observation", "centralDeployment"]);
           hash2(unit.identitySha256);
@@ -523,18 +529,23 @@ async function gitReleaseStateStore({ directory: directory2, remote, runGit = de
       await rm(index, { force: true });
       await rm(`${index}.lock`, { force: true });
     }
-    try {
-      await git(["push", "--porcelain", remote, `${nextCommit}:${REF}`]);
-    } catch {
-      let observed2;
+    for (let attempt = 0; ; attempt++) {
       try {
-        observed2 = await read();
-      } catch {
-        throw new UncertainReleaseStateCommit(nextCommit);
+        await git(["push", "--porcelain", remote, `${nextCommit}:${REF}`]);
+        break;
+      } catch (error) {
+        let observed2;
+        try {
+          observed2 = await read();
+        } catch {
+          throw new UncertainReleaseStateCommit(nextCommit);
+        }
+        if (observed2.commit === nextCommit) return observed2;
+        if (observed2.commit !== expectedCommit) throw new ConcurrentReleaseState();
+        if (attempt === 0 && ["repository-unavailable", "transport", "timeout"].includes(error.gitFailureCategory)) continue;
+        const category = ["repository-unavailable", "transport", "timeout", "authentication", "dns", "tls", "other"].includes(error.gitFailureCategory) ? error.gitFailureCategory : "unknown";
+        throw new Error(`Release state push was rejected (${category}); do not start publication`);
       }
-      if (observed2.commit === nextCommit) return observed2;
-      if (observed2.commit !== expectedCommit) throw new ConcurrentReleaseState();
-      throw new Error("Release state push was rejected; do not start publication");
     }
     let observed;
     try {
@@ -546,6 +557,9 @@ async function gitReleaseStateStore({ directory: directory2, remote, runGit = de
     return observed;
   }
   return { read, commit, remote, directory: directory2 };
+}
+function classifyGitFailure(detail, timedOut = false) {
+  return timedOut ? "timeout" : /authentication failed|invalid username|could not read Username|error: 401|error: 403/i.test(detail) ? "authentication" : /Could not resolve host/i.test(detail) ? "dns" : /SSL certificate|certificate verify/i.test(detail) ? "tls" : /repository not found|repository .* not found/i.test(detail) ? "repository-unavailable" : /RPC failed|HTTP\/2|remote end hung up|connection reset|Failed to connect|error: 50[0234]/i.test(detail) ? "transport" : "other";
 }
 async function defaultRunGit(args, input, env) {
   const { spawn: spawn2 } = await import("node:child_process");
@@ -579,7 +593,7 @@ async function defaultRunGit(args, input, env) {
       clearTimeout(timeout);
       if (code === 0 && size <= 16 * 1024 * 1024) return resolveRun(Buffer.concat(chunks));
       const detail = Buffer.concat(diagnostics).toString("utf8");
-      const category = timedOut ? "timeout" : /authentication failed|invalid username|could not read Username|error: 401|error: 403/i.test(detail) ? "authentication" : /Could not resolve host/i.test(detail) ? "dns" : /SSL certificate|certificate verify/i.test(detail) ? "tls" : /repository not found|repository .* not found/i.test(detail) ? "repository-unavailable" : /RPC failed|HTTP\/2|remote end hung up|connection reset|Failed to connect|error: 50[234]/i.test(detail) ? "transport" : "other";
+      const category = classifyGitFailure(detail, timedOut);
       const error = new Error(`Git state command failed (${category})`);
       error.gitFailureCategory = category;
       reject(error);
@@ -615,9 +629,24 @@ function appJwt(clientId, privateKey, now = Date.now()) {
   return `${input}.${sign("RSA-SHA256", Buffer.from(input), key2).toString("base64url")}`;
 }
 async function githubRequest(fetchImpl, token, path, { method = "GET", body, expectedStatus = 200 } = {}) {
-  const validatedPath = path.replace(/(\/compare\/[a-f0-9]{40})\.\.\.([a-f0-9]{40})(?=\?|$)/, "$1-to-$2");
-  if (!/^\/[A-Za-z0-9_/?=&.-]+$/.test(path) || path.startsWith("//") || validatedPath.includes("..")) throw new Error("Invalid GitHub API path");
+  if (typeof path !== "string") throw new Error("Invalid GitHub API path");
+  const [pathname, query, ...extra] = path.split("?");
+  const validatedPath = pathname.replace(/(\/compare\/[a-f0-9]{40})\.\.\.([a-f0-9]{40})$/, "$1-to-$2");
+  if (!/^\/[A-Za-z0-9_/.-]+$/.test(pathname) || pathname.startsWith("//") || validatedPath.includes("..") || extra.length)
+    throw new Error("Invalid GitHub API path");
+  if (query !== void 0) {
+    let decoded;
+    try {
+      decoded = decodeURIComponent(query);
+    } catch {
+      throw new Error("Invalid GitHub API path");
+    }
+    if (!/^[A-Za-z0-9_=&.:%/-]+$/.test(query) || !/^[A-Za-z0-9_=&.:/-]+$/.test(decoded) || decoded.includes(".."))
+      throw new Error("Invalid GitHub API path");
+  }
   let response;
+  const readLease = method === "POST" && /^\/app\/installations\/[0-9]+\/access_tokens$/.test(path) && expectedStatus === 201 && Array.isArray(body?.repositories) && body.repositories.length === 1 && body.permissions && Object.keys(body.permissions).length > 0 && Object.values(body.permissions).every((value) => value === "read");
+  const retryable = method === "GET" || readLease;
   for (let attempt = 0; ; attempt++) {
     try {
       response = await fetchImpl(`${API}${path}`, {
@@ -636,7 +665,7 @@ async function githubRequest(fetchImpl, token, path, { method = "GET", body, exp
     } catch {
       throw new Error("GitHub API transport failed (details suppressed to protect credentials)");
     }
-    if (method !== "GET" || ![502, 503, 504].includes(response.status) || attempt >= 2) break;
+    if (!retryable || ![500, 502, 503, 504].includes(response.status) || attempt >= 2) break;
     await response.body?.cancel();
     await delay(1e3 * (attempt + 1));
   }
@@ -678,7 +707,7 @@ function githubReleaseStateCredentials(options) {
 }
 function repositoryCredentials({ inventory, packages, clientId, privateKey, fetchImpl = fetch, now = Date.now, visibility }, purpose, access) {
   validateRepositoryInventory(inventory, packages);
-  const expectedVisibility = purpose === "sdk" ? "public" : ["actions", "dispatch"].includes(purpose) ? visibility : "private";
+  const expectedVisibility = purpose === "sdk" ? "public" : ["actions", "dispatch", "review"].includes(purpose) ? visibility : "private";
   const selected = purpose === "state" ? [inventory.releaseStateRepository] : inventory.sdkRepositories;
   const allowed = new Map(selected.map((repo) => [`${OWNER}/${repo.name}`, repo.repositoryId]));
   return async ({ repository }) => {
@@ -735,6 +764,7 @@ function repositoryCredentials({ inventory, packages, clientId, privateKey, fetc
 
 // scripts/public-api/lib/github-release-state.mjs
 import { setTimeout as delay2 } from "node:timers/promises";
+import { AsyncLocalStorage } from "node:async_hooks";
 var RELEASE_STATE_REPOSITORY = "reacon-io/reacon-sdk-releases";
 var REMOTE = `https://github.com/${RELEASE_STATE_REPOSITORY}.git`;
 async function githubReleaseStateStore({
@@ -746,7 +776,8 @@ async function githubReleaseStateStore({
   privateKey,
   fetchImpl = fetch,
   now = Date.now,
-  runGit = defaultRunGit
+  runGit = defaultRunGit,
+  waitImpl = delay2
 }) {
   if (!["read", "write"].includes(access)) throw new Error("State access must be read or write");
   const getCredentials = githubReleaseStateCredentials({ inventory, packages, clientId, privateKey, fetchImpl, now, access });
@@ -755,6 +786,22 @@ async function githubReleaseStateStore({
   if (await realpath2(parent) !== parent) throw new Error("State cache parent cannot use symlinks");
   const cache = await mkdtemp(join2(parent, "github-state-"));
   let closed = false, credentialCleanupFailed = false;
+  const transactions = new AsyncLocalStorage();
+  const transaction = async (operation) => {
+    if (closed) throw new Error("GitHub state store is closed");
+    if (credentialCleanupFailed) throw new Error("GitHub state token revocation failed; stop and reconcile");
+    const context = { lease: null };
+    try {
+      return await transactions.run(context, operation);
+    } finally {
+      if (context.lease) try {
+        await context.lease.revoke();
+      } catch {
+        credentialCleanupFailed = true;
+        throw new Error("GitHub state token revocation failed; stop and reconcile");
+      }
+    }
+  };
   const execute = async (args, input, env) => {
     if (closed) throw new Error("GitHub state store is closed");
     if (credentialCleanupFailed) throw new Error("GitHub state token revocation failed; stop and reconcile");
@@ -786,8 +833,11 @@ async function githubReleaseStateStore({
     if (!args.includes("fetch") && !args.includes("push") || access === "read" && args.includes("push")) {
       throw new Error("Unexpected GitHub state transport operation");
     }
+    const context = transactions.getStore();
+    if (!context) throw new Error("GitHub state transport requires a scoped transaction");
+    context.lease ??= await getCredentials({ repository: RELEASE_STATE_REPOSITORY });
+    const lease = context.lease;
     for (let attempt = 0; ; attempt++) {
-      const lease = await getCredentials({ repository: RELEASE_STATE_REPOSITORY });
       try {
         const authorization = `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${lease.token}`).toString("base64")}`;
         return await runGit([...options, ...args], input, {
@@ -797,16 +847,9 @@ async function githubReleaseStateStore({
           GIT_CONFIG_VALUE_0: authorization
         });
       } catch (error) {
-        if (!args.includes("fetch") || attempt >= 2 || error.gitFailureCategory !== "repository-unavailable") throw error;
-      } finally {
-        try {
-          await lease.revoke();
-        } catch {
-          credentialCleanupFailed = true;
-          throw new Error("GitHub state token revocation failed; stop and reconcile");
-        }
+        if (!args.includes("fetch") || attempt >= 4 || !["repository-unavailable", "transport", "timeout"].includes(error.gitFailureCategory)) throw error;
       }
-      await delay2(1e3);
+      await waitImpl(1e3 * 2 ** attempt);
     }
   };
   try {
@@ -819,12 +862,14 @@ async function githubReleaseStateStore({
       return snapshot;
     };
     return {
-      read,
+      read: () => transaction(read),
       async commit(request) {
         if (access !== "write") throw new Error("Read-only GitHub state store cannot commit");
-        const before = await read();
-        if (before.commit !== request.expectedCommit) throw new ConcurrentReleaseState();
-        return store2.commit(request);
+        return transaction(async () => {
+          const before = await read();
+          if (before.commit !== request.expectedCommit) throw new ConcurrentReleaseState();
+          return store2.commit(request);
+        });
       },
       remote: REMOTE,
       access,
@@ -1035,9 +1080,11 @@ function rubyRustUploader({
   getCredentials,
   inspectArchive = inspectRetainedRubyRust,
   fetchImpl = fetch,
-  now = () => Date.now()
+  now = () => Date.now(),
+  initialCrateBootstrapVersion
 }) {
   if (!registries[family2]) throw new Error("Unsupported raw archive registry");
+  if (initialCrateBootstrapVersion !== void 0 && (family2 !== "rust" || !/^0\.1\.0-beta\.\d+$/.test(initialCrateBootstrapVersion))) throw Error("Only the initial Rust beta supports API-token bootstrap");
   async function prepare(input) {
     const { identity: identity2, bytes } = input;
     if (identity2.registry !== registries[family2] || identity2.packageName !== NAME || !/^[0-9A-Za-z.-]+$/.test(identity2.version) || identity2.filename !== `${NAME}-${identity2.version}.${family2 === "ruby" ? "gem" : "crate"}` || bytes.length !== identity2.size || sha256(bytes) !== identity2.sha256) throw new Error("Retained archive identity mismatch");
@@ -1066,11 +1113,15 @@ function rubyRustUploader({
     preflight: async (input) => (await prepare(input)).report,
     upload: async (input) => {
       if (typeof input.assertCurrentIntent !== "function" || typeof getCredentials !== "function") throw new Error("Durable intent and explicit trusted-publisher credentials are required");
+      const { identity: identity2 } = input;
       const { body } = await prepare(input);
       await input.assertCurrentIntent();
       const credential = await getCredentials({ registry: registries[family2], packageName: NAME });
       try {
-        if (credential.kind !== "trusted-publisher" || credential.registry !== registries[family2] || credential.packageName !== NAME || credential.repository !== `reacon-io/reacon-${family2}` || credential.workflow !== "publish.yml" || credential.environment !== "release" || typeof credential.token !== "string" || credential.token.length < 1 || /\s/.test(credential.token) || !Number.isFinite(credential.expiresAt) || credential.expiresAt <= now() + 3e4 || credential.expiresAt > now() + 36e5) throw new Error("Unexpected trusted-publisher credential binding or lifetime");
+        const trusted = credential.kind === "trusted-publisher" && credential.repository === `reacon-io/reacon-${family2}` && credential.workflow === "publish.yml" && credential.environment === "release" && credential.expiresAt <= now() + 36e5;
+        const bootstrap = family2 === "rust" && initialCrateBootstrapVersion === identity2.version && credential.kind === "initial-crate-bootstrap" && credential.account === "reacon-achazal" && credential.version === identity2.version && credential.execution === "local-initial-beta-bootstrap" && credential.workloadIdentityVerified === false && credential.expiresAt <= now() + 7 * 864e5;
+        if (!trusted && !bootstrap || credential.registry !== registries[family2] || credential.packageName !== NAME || typeof credential.token !== "string" || credential.token.length < 1 || /\s/.test(credential.token) || !Number.isFinite(credential.expiresAt) || credential.expiresAt <= now() + 3e4)
+          throw new Error("Unexpected publication credential binding or lifetime");
         await input.assertCurrentIntent();
         let response;
         try {
@@ -1126,6 +1177,363 @@ function rubyRustUploader({
       }
     }
   };
+}
+
+// scripts/public-api/lib/nuget-registry.mjs
+import { createHash as createHash4 } from "node:crypto";
+
+// sdk-generation/ci/source/package-artifacts.mjs
+var MAX_BYTES = 256 * 1024 * 1024;
+function validateArtifactNames(family2, packageVersion, names2) {
+  if (!Array.isArray(names2) || new Set(names2).size !== names2.length || names2.some((name) => !/^[A-Za-z0-9_.-]+$/.test(name))) throw new Error("Invalid package artifact filenames");
+  const v = packageVersion;
+  const maven = (name) => [`.jar`, `-sources.jar`, `-javadoc.jar`, `.pom`].map((suffix) => `${name}-${v}${suffix}`);
+  const expected = {
+    typescript: [`reacon-io-sdk-${v}.tgz`],
+    go: [`.zip`, `.mod`, `.info`].map((suffix) => `v${v}${suffix}`),
+    rust: [`reacon-sdk-${v}.crate`],
+    php: [`reacon-sdk-${v}.zip`],
+    ruby: [`reacon-sdk-${v}.gem`],
+    java: maven("reacon-java"),
+    kotlin: [...maven("reacon-kotlin"), `reacon-kotlin-${v}.module`],
+    csharp: [`Reacon.Sdk.${v}.nupkg`],
+    python: [`reacon_sdk-${v}-py3-none-any.whl`, `reacon_sdk-${v}.tar.gz`]
+  }[family2];
+  if (!expected || JSON.stringify([...names2].sort()) !== JSON.stringify(expected.sort())) throw new Error(`Missing or unexpected ${family2} package artifacts`);
+}
+
+// scripts/public-api/lib/package-artifacts.mjs
+var MAX_BYTES2 = 256 * 1024 * 1024;
+
+// scripts/public-api/lib/nuget-native.mjs
+import { mkdtemp as mkdtemp3, readFile as readFile2, writeFile as writeFile2, rm as rm4 } from "node:fs/promises";
+import { join as join4 } from "node:path";
+import { tmpdir as tmpdir2 } from "node:os";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+var root3 = fileURLToPath3(new URL("../../../", import.meta.url));
+var serviceIndex = "https://api.nuget.org/v3/index.json";
+var digest = (value) => /^[a-f0-9]{64}$/.test(value ?? "");
+function parseNugetVerification(output, fingerprints) {
+  const identity2 = [...output.matchAll(/^Verifying ([A-Za-z0-9_.-]+)$/gm)];
+  const hashes = [...output.matchAll(/^Content hash: ([A-Za-z0-9+/]{86}==)$/gm)];
+  const repoBlocks = output.split(/^Signature type: Repository\r?$/m).slice(1);
+  if (identity2.length !== 1 || hashes.length !== 1 || repoBlocks.length !== 1) throw new Error("Missing NuGet signature verification evidence");
+  const repository = repoBlocks[0];
+  const fingerprint = /^\s*SHA256 hash: ([A-Fa-f0-9]{64})\r?$/m.exec(repository)?.[1].toLowerCase();
+  if (!repository.includes(`Service index: ${serviceIndex}`) || !fingerprints.includes(fingerprint)) throw new Error("NuGet signature is not from the advertised repository certificates");
+  return {
+    packageIdentity: identity2[0][1],
+    contentSha512: hashes[0][1],
+    repositoryFingerprint: fingerprint,
+    repositorySignatureVerified: true
+  };
+}
+async function inspectNugetArchive({
+  bytes,
+  version,
+  fingerprints,
+  verifySignature = false,
+  runProcess = runPublisherProcess,
+  toolchainConfiguration = join4(root3, "sdk-generation/config/toolchain-images.json"),
+  inspectorPath = join4(root3, "scripts/public-api/inspect-nuget-package.py")
+}) {
+  const directory2 = await mkdtemp3(join4(tmpdir2(), "reacon-nuget-inspect-"));
+  try {
+    const file = join4(directory2, "package.nupkg");
+    await writeFile2(file, bytes, { flag: "wx", mode: 256 });
+    const config = JSON.parse(await readFile2(toolchainConfiguration));
+    const image = config.images[verifySignature ? "csharp" : "python"].image;
+    if (!/^[a-z0-9/.-]+@sha256:[a-f0-9]{64}$/.test(image)) throw new Error("NuGet inspector image must be pinned");
+    const environment = { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: directory2, LANG: "C.UTF-8" };
+    await runProcess({ command: "/usr/bin/docker", args: ["pull", image], cwd: directory2, env: environment });
+    const args = [
+      "run",
+      "--pull=never",
+      "--rm",
+      "--read-only",
+      "--cap-drop=ALL",
+      "--security-opt=no-new-privileges",
+      "--pids-limit=128",
+      "--memory=1g",
+      "--user",
+      `${process.getuid()}:${process.getgid()}`,
+      "--tmpfs=/tmp:rw,nosuid,nodev,size=256m",
+      "--env",
+      "HOME=/tmp",
+      "--env",
+      "DOTNET_CLI_HOME=/tmp",
+      "--env",
+      "DOTNET_CLI_TELEMETRY_OPTOUT=1",
+      "--env",
+      "DOTNET_CLI_UI_LANGUAGE=en-US",
+      "--env",
+      "DOTNET_NUGET_SIGNATURE_VERIFICATION=true",
+      "--mount",
+      `type=bind,source=${file},target=/input/package.nupkg,readonly`
+    ];
+    if (verifySignature) {
+      if (!Array.isArray(fingerprints) || !fingerprints.length || fingerprints.length > 20 || fingerprints.some((value) => !digest(value))) throw new Error("Explicit NuGet repository certificate policy is required");
+      const certificates = fingerprints.map((value) => `<certificate fingerprint="${value}" hashAlgorithm="SHA256" allowUntrustedRoot="false" />`).join("");
+      const policy = `<configuration><packageSources><clear /></packageSources><config><add key="signatureValidationMode" value="require" /></config><trustedSigners><clear /><repository name="nuget.org" serviceIndex="${serviceIndex}">${certificates}</repository></trustedSigners></configuration>`;
+      await writeFile2(join4(directory2, "NuGet.Config"), policy, { flag: "wx", mode: 256 });
+      args.push(
+        "--mount",
+        `type=bind,source=${join4(directory2, "NuGet.Config")},target=/input/NuGet.Config,readonly`,
+        image,
+        "dotnet",
+        "nuget",
+        "verify",
+        "/input/package.nupkg",
+        "--all",
+        "--configfile",
+        "/input/NuGet.Config",
+        "--verbosity",
+        "normal"
+      );
+    } else args.push(
+      "--network=none",
+      "--mount",
+      `type=bind,source=${inspectorPath},target=/inspect.py,readonly`,
+      image,
+      "python",
+      "-B",
+      "/inspect.py",
+      "/input/package.nupkg",
+      version
+    );
+    const output = await runProcess({
+      command: "/usr/bin/docker",
+      args,
+      cwd: directory2,
+      env: environment
+    });
+    return { ...verifySignature ? parseNugetVerification(output, fingerprints) : JSON.parse(output), inspectorImage: image };
+  } finally {
+    await rm4(directory2, { recursive: true, force: true });
+  }
+}
+
+// scripts/public-api/lib/nuget-registry.mjs
+var INDEX = "https://api.nuget.org/v3/index.json";
+var UPLOAD = "https://www.nuget.org/api/v2/package";
+var jsonBytes2 = (value) => Buffer.from(JSON.stringify(canonical(value), null, 2) + "\n");
+var hash512 = (value) => createHash4("sha512").update(value).digest("base64");
+var digest2 = (value) => /^[a-f0-9]{64}$/.test(value ?? "");
+function nugetUnitIdentity(manifest, bytes) {
+  if (manifest.formatVersion !== 1 || manifest.kind !== "sdk-package-artifacts" || manifest.family !== "csharp" || manifest.publishable !== false || !digest2(manifest.sourceSha256) || !digest2(manifest.contractSha256)) throw new Error("Invalid NuGet candidate");
+  const version = renderReleaseVersion("csharp", manifest.canonicalVersion, { availability: manifest.canonicalVersion.includes("-") ? "private" : "public" });
+  if (manifest.packageVersion !== version.packageVersion) throw new Error("NuGet version differs from candidate");
+  validateArtifactNames("csharp", manifest.packageVersion, Object.keys(manifest.files));
+  const filename = `Reacon.Sdk.${manifest.packageVersion}.nupkg`, file = manifest.files[filename];
+  if (!digest2(file.sha256) || !Number.isSafeInteger(file.size) || file.size < 1 || file.size > 256 * 1024 * 1024 || file.size !== bytes.length || sha256(bytes) !== file.sha256) throw new Error("Retained NuGet archive changed");
+  const identity2 = {
+    formatVersion: 1,
+    kind: "sdk-nuget-content",
+    registry: "nuget",
+    packageName: "Reacon.Sdk",
+    version: manifest.packageVersion,
+    contentSha512: hash512(bytes)
+  };
+  return { identity: identity2, identitySha256: sha256(jsonBytes2(identity2)), filename, file };
+}
+function nugetUploader({ getCredentials, inspectArchive = inspectNugetArchive, fetchImpl = fetch, now = () => Date.now() }) {
+  async function prepare({ identity: identity2, bytes, filename, file }) {
+    if (identity2.kind !== "sdk-nuget-content" || identity2.registry !== "nuget" || identity2.packageName !== "Reacon.Sdk" || !/^[0-9A-Za-z.-]+$/.test(identity2.version) || filename !== `Reacon.Sdk.${identity2.version}.nupkg` || bytes.length !== file.size || sha256(bytes) !== file.sha256 || hash512(bytes) !== identity2.contentSha512) throw new Error("NuGet upload differs from retained identity");
+    const report = await inspectArchive({ bytes, version: identity2.version });
+    if (report.kind !== "sdk-nuget-upload-metadata" || report.formatVersion !== 1 || report.name !== identity2.packageName || report.version !== identity2.version || report.contentSha512 !== identity2.contentSha512 || report.unsigned !== true || report.rebuilt !== false || report.executedPackageCode !== false || report.publishable !== false) throw new Error("Unexpected NuGet metadata inspection");
+    return { ...report, submittedSha256: file.sha256, submittedSize: file.size, uploaded: false };
+  }
+  return {
+    preflight: prepare,
+    upload: async (input) => {
+      if (typeof input.assertCurrentIntent !== "function" || typeof getCredentials !== "function") throw new Error("NuGet requires durable intent and explicit OIDC credentials");
+      try {
+        await prepare(input);
+      } catch (error) {
+        error.publicationDiagnostic = { stage: "nuget-preflight", reason: "Retained archive inspection failed", errorCode: error.code ?? null };
+        throw error;
+      }
+      await input.assertCurrentIntent();
+      const credential = await getCredentials({ registry: "nuget", packageName: "Reacon.Sdk" });
+      if (credential.kind !== "trusted-publisher" || credential.registry !== "nuget" || credential.packageName !== "Reacon.Sdk" || credential.repository !== "reacon-io/reacon-csharp" || credential.workflow !== "publish.yml" || credential.environment !== "release" || typeof credential.token !== "string" || !credential.token || /\s/.test(credential.token) || !Number.isFinite(credential.expiresAt) || credential.expiresAt <= now() + 3e4 || credential.expiresAt > now() + 36e5) throw new Error("Unexpected NuGet credential binding");
+      const body = new FormData();
+      body.append("package", new Blob([input.bytes], { type: "application/octet-stream" }), input.filename);
+      await input.assertCurrentIntent();
+      let response;
+      try {
+        response = await fetchImpl(UPLOAD, {
+          method: "PUT",
+          body,
+          redirect: "error",
+          signal: AbortSignal.timeout(12e4),
+          headers: { "X-NuGet-ApiKey": credential.token, "X-NuGet-Protocol-Version": "4.1.0", "User-Agent": "Reacon-SDK-Releases/1.0 (https://github.com/reacon-io)" }
+        });
+      } catch {
+        throw new Error("NuGet upload outcome unknown; reconcile before retry");
+      }
+      if (![201, 202].includes(response.status)) {
+        const chunks = [];
+        let length = 0;
+        try {
+          for await (const chunk of response.body) {
+            length += chunk.length;
+            if (length > 16384) break;
+            chunks.push(chunk);
+          }
+        } catch {
+        }
+        const reason = Buffer.concat(chunks).toString("utf8").split(credential.token).join("[redacted]").replace(/eyJ[A-Za-z0-9_.-]+/g, "[redacted]").replace(/[A-Za-z0-9_+\/=-]{40,}/g, "[redacted]").slice(0, 2e3);
+        const error = new Error(`NuGet upload returned HTTP ${response.status}; reconcile before retry`);
+        error.publicationDiagnostic = { stage: "nuget-upload", status: response.status, reason };
+        throw error;
+      }
+      await response.body?.cancel();
+      return { uploaded: true, registryVerificationRequired: true };
+    }
+  };
+}
+async function nugetRegistry({
+  manifest: input,
+  readArtifact,
+  retainEvidence,
+  store: store2,
+  upload,
+  verifyArchive = inspectNugetArchive,
+  fetchImpl = fetch,
+  now = () => (/* @__PURE__ */ new Date()).toISOString()
+}) {
+  const manifest = structuredClone(input), manifestSha256 = sha256(jsonBytes2(manifest));
+  if (typeof readArtifact !== "function" || typeof retainEvidence !== "function") throw new Error("Retained NuGet storage required");
+  const file = Object.values(manifest.files ?? {})[0];
+  if (!digest2(file?.sha256)) throw new Error("Invalid NuGet artifact reference");
+  const original = Buffer.from(await readArtifact(file.sha256));
+  const expected = nugetUnitIdentity(manifest, original), { identity: identity2, identitySha256 } = expected;
+  function bind(subject) {
+    const pkg = subject.package;
+    if (subject.family !== "csharp" || subject.unit !== "nuget" || pkg?.canonicalVersion !== manifest.canonicalVersion || pkg.packageVersion !== manifest.packageVersion || pkg.sourceSha256 !== manifest.sourceSha256 || pkg.artifactManifestSha256 !== manifestSha256 || pkg.units?.nuget?.identitySha256 !== identitySha256 || subject.contractSha256 !== manifest.contractSha256) throw new Error("NuGet subject differs from retained candidate");
+  }
+  async function inspect(subject) {
+    bind(subject);
+    const evidence = {
+      formatVersion: 1,
+      kind: "sdk-registry-observation",
+      registry: "nuget",
+      packageName: identity2.packageName,
+      version: identity2.version,
+      expectedIdentitySha256: identitySha256,
+      observedAt: now(),
+      requests: []
+    };
+    async function retained(bytes) {
+      const result = await retainEvidence(bytes);
+      if (result?.sha256 !== sha256(bytes)) throw new Error("NuGet evidence retention mismatch");
+      return result.sha256;
+    }
+    async function get(url, binary = false) {
+      const address = new URL(url);
+      if (address.origin !== "https://api.nuget.org" || address.username || address.password || address.hash || address.search) throw new Error("Unexpected NuGet public endpoint");
+      const record = { url };
+      evidence.requests.push(record);
+      let response;
+      try {
+        response = await fetchImpl(url, { redirect: "error", signal: AbortSignal.timeout(3e4), headers: { Accept: binary ? "application/octet-stream" : "application/json" } });
+      } catch {
+        record.outcome = "transport-error";
+        return {};
+      }
+      record.status = response.status;
+      if (response.status !== 200) {
+        await response.body?.cancel();
+        return { status: response.status };
+      }
+      const chunks = [];
+      let size = 0;
+      try {
+        for await (const chunk of response.body) {
+          size += chunk.length;
+          if (size > (binary ? 256 : 2) * 1024 * 1024) throw new Error();
+          chunks.push(chunk);
+        }
+      } catch {
+        record.outcome = "invalid-body";
+        return {};
+      }
+      const bytes = Buffer.concat(chunks);
+      record.bodySha256 = await retained(bytes);
+      record.size = bytes.length;
+      if (binary) return { status: 200, bytes };
+      try {
+        return { status: 200, data: JSON.parse(bytes) };
+      } catch {
+        return {};
+      }
+    }
+    async function finish(status, reason, actualIdentity) {
+      Object.assign(evidence, { status, reason, ...actualIdentity ? { actualIdentity } : {} });
+      return {
+        status,
+        evidenceSha256: await retained(jsonBytes2(evidence)),
+        ...actualIdentity ? { identitySha256: sha256(jsonBytes2(actualIdentity)) } : {}
+      };
+    }
+    const unknown = (reason) => finish("unknown", reason);
+    const conflict = (reason) => finish("found", reason, { kind: "sdk-registry-conflict", expectedIdentitySha256: identitySha256, reason });
+    const index = await get(INDEX);
+    if (!Array.isArray(index.data?.resources)) return unknown("service-index-unavailable");
+    const resource = (type) => {
+      const matches = index.data.resources.filter((value) => value?.["@type"] === type);
+      if (matches.length !== 1) return null;
+      try {
+        const url = new URL(matches[0]["@id"]);
+        if (url.origin !== "https://api.nuget.org" || url.username || url.password || url.search || url.hash) return null;
+        return url.href;
+      } catch {
+        return null;
+      }
+    };
+    const base = resource("PackageBaseAddress/3.0.0"), registration = resource("RegistrationsBaseUrl/3.6.0"), signatures = resource("RepositorySignatures/5.0.0");
+    if (!base?.endsWith("/") || !registration?.endsWith("/") || !signatures) return unknown("untrusted-service-resources");
+    const id4 = identity2.packageName.toLowerCase(), version = identity2.version.toLowerCase();
+    const versions = await get(`${base}${id4}/index.json`);
+    if (versions.status === 404) return finish("absent", "package-not-found");
+    if (!Array.isArray(versions.data?.versions) || versions.data.versions.some((value) => typeof value !== "string")) return unknown("invalid-version-index");
+    if (!versions.data.versions.includes(version)) return finish("absent", "version-not-found");
+    const details = await get(`${registration}${id4}/${version}.json`);
+    if (details.data?.listed === false) return conflict("package-unlisted");
+    const download = `${base}${id4}/${version}/${id4}.${version}.nupkg`;
+    if (details.data?.listed !== true || details.data.packageContent !== download) return unknown("registration-unavailable");
+    const certificates = await get(signatures);
+    const list = certificates.data?.signingCertificates;
+    if (certificates.data?.allRepositorySigned !== true || !Array.isArray(list) || !list.length || list.length > 20) return unknown("repository-signature-policy-unavailable");
+    const fingerprints = list.map((value) => value?.fingerprints?.["2.16.840.1.101.3.4.2.1"]);
+    if (fingerprints.some((value) => !digest2(value))) return unknown("invalid-repository-certificates");
+    const downloaded = await get(download, true);
+    if (downloaded.status !== 200) return unknown("package-download-unavailable");
+    let verified;
+    try {
+      verified = await verifyArchive({ bytes: downloaded.bytes, version, fingerprints, verifySignature: true });
+    } catch {
+      return unknown("signature-verification-failed");
+    }
+    if (verified.repositorySignatureVerified !== true || verified.packageIdentity !== `Reacon.Sdk.${identity2.version}` || !fingerprints.includes(verified.repositoryFingerprint) || !/^[A-Za-z0-9+/]{86}==$/.test(verified.contentSha512 ?? "")) return unknown("invalid-signature-evidence");
+    evidence.signatureVerificationSha256 = await retained(jsonBytes2(verified));
+    return finish("found", "verified-nuget-content", { ...identity2, contentSha512: verified.contentSha512 });
+  }
+  async function publish(subject) {
+    bind(subject);
+    if (!store2 || typeof upload !== "function") throw new Error("NuGet publication requires durable state and an uploader");
+    async function assertCurrentIntent() {
+      const { state } = await store2.read(), release = state.releases[subject.releaseId], pkg = release?.packages.csharp;
+      const unit = pkg?.units.nuget, attempt = unit?.attempts.at(-1);
+      const expiry = Date.parse(release?.compatibility?.expiresAt), observed = Date.parse(now());
+      if (state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== manifest.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(expiry) || !Number.isFinite(observed) || expiry <= observed) throw new Error("No current durable NuGet publication intent");
+    }
+    await assertCurrentIntent();
+    const bytes = Buffer.from(await readArtifact(file.sha256));
+    nugetUnitIdentity(manifest, bytes);
+    await upload({ ...expected, bytes, assertCurrentIntent });
+  }
+  return { inspect, publish, manifestSha256, ...expected };
 }
 
 // scripts/public-api/lib/registry-oidc.mjs
@@ -1234,6 +1642,35 @@ function registryOidcCredentials({ family: family2, environment, nugetUsername, 
       } } : {}
     };
   };
+}
+async function qualifyRegistryOidc({ maskCredential, ...options }) {
+  if (!["python", "ruby", "rust", "csharp"].includes(options.family) || typeof maskCredential !== "function")
+    throw new Error("Explicit supported registry qualification and credential masking are required");
+  const request = {
+    registry: REGISTRIES[options.family].name,
+    packageName: options.family === "csharp" ? "Reacon.Sdk" : "reacon-sdk"
+  };
+  const credential = await registryOidcCredentials(options)(request);
+  try {
+    maskCredential(credential.token);
+    return {
+      registry: credential.registry,
+      packageName: credential.packageName,
+      repository: credential.repository,
+      workflow: credential.workflow,
+      environment: credential.environment,
+      expiresAt: new Date(credential.expiresAt).toISOString(),
+      credentialPersisted: false,
+      packageUploaded: false,
+      ...options.family === "rust" ? { temporaryTokenRevoked: true } : {}
+    };
+  } finally {
+    try {
+      if (typeof credential.revoke === "function") await credential.revoke();
+    } finally {
+      credential.token = void 0;
+    }
+  }
 }
 
 // sdk-generation/release/github-bootstrap.json
@@ -1687,8 +2124,8 @@ var github_bootstrap_default = {
 };
 
 // scripts/public-api/lib/file-publication-targets.mjs
-var units = { typescript: ["npm"], python: ["wheel", "sdist"], ruby: ["gem"], rust: ["crate"] };
-var labels = { typescript: "npm", python: "PyPI", ruby: "RubyGems", rust: "crates.io" };
+var units = { typescript: ["npm"], python: ["wheel", "sdist"], ruby: ["gem"], rust: ["crate"], csharp: ["nuget"] };
+var labels = { typescript: "npm", python: "PyPI", ruby: "RubyGems", rust: "crates.io", csharp: "NuGet" };
 function filePublicationTarget(family2) {
   const record = github_bootstrap_default.sdkRepositories.find((item) => item.family === family2);
   if (!Object.hasOwn(units, family2) || !record || record.name !== `reacon-${family2}` || !Number.isSafeInteger(record.repositoryId) || github_bootstrap_default.organization !== "reacon-io" || github_bootstrap_default.organizationId !== 334414696) throw Error("Unsupported company file publisher");
@@ -1702,46 +2139,21 @@ function filePublicationTarget(family2) {
 }
 
 // scripts/public-api/lib/file-registry.mjs
-import { createHash as createHash4 } from "node:crypto";
-
-// sdk-generation/ci/source/package-artifacts.mjs
-var MAX_BYTES = 256 * 1024 * 1024;
-function validateArtifactNames(family2, packageVersion, names2) {
-  if (!Array.isArray(names2) || new Set(names2).size !== names2.length || names2.some((name) => !/^[A-Za-z0-9_.-]+$/.test(name))) throw new Error("Invalid package artifact filenames");
-  const v = packageVersion;
-  const maven = (name) => [`.jar`, `-sources.jar`, `-javadoc.jar`, `.pom`].map((suffix) => `${name}-${v}${suffix}`);
-  const expected = {
-    typescript: [`reacon-io-sdk-${v}.tgz`],
-    go: [`.zip`, `.mod`, `.info`].map((suffix) => `v${v}${suffix}`),
-    rust: [`reacon-sdk-${v}.crate`],
-    php: [`reacon-sdk-${v}.zip`],
-    ruby: [`reacon-sdk-${v}.gem`],
-    java: maven("reacon-java"),
-    kotlin: [...maven("reacon-kotlin"), `reacon-kotlin-${v}.module`],
-    csharp: [`Reacon.Sdk.${v}.nupkg`],
-    python: [`reacon_sdk-${v}-py3-none-any.whl`, `reacon_sdk-${v}.tar.gz`]
-  }[family2];
-  if (!expected || JSON.stringify([...names2].sort()) !== JSON.stringify(expected.sort())) throw new Error(`Missing or unexpected ${family2} package artifacts`);
-}
-
-// scripts/public-api/lib/package-artifacts.mjs
-var MAX_BYTES2 = 256 * 1024 * 1024;
-
-// scripts/public-api/lib/file-registry.mjs
+import { createHash as createHash5 } from "node:crypto";
 var MAX_FILE = 256 * 1024 * 1024;
-var jsonBytes2 = (value) => Buffer.from(JSON.stringify(canonical(value), null, 2) + "\n");
+var jsonBytes3 = (value) => Buffer.from(JSON.stringify(canonical(value), null, 2) + "\n");
 var names = { typescript: "@reacon-io/sdk", python: "reacon-sdk", ruby: "reacon-sdk", rust: "reacon-sdk" };
 var registries2 = { typescript: "npm", python: "pypi", ruby: "rubygems", rust: "crates.io" };
 var familyUnits = { typescript: { npm: ".tgz" }, python: { wheel: ".whl", sdist: ".tar.gz" }, ruby: { gem: ".gem" }, rust: { crate: ".crate" } };
-var digest = (value) => /^[a-f0-9]{64}$/.test(value ?? "");
+var digest3 = (value) => /^[a-f0-9]{64}$/.test(value ?? "");
 function registryUnitIdentity(manifest, unit) {
-  if (!names[manifest.family] || manifest.formatVersion !== 1 || manifest.kind !== "sdk-package-artifacts" || manifest.publishable !== false || !digest(manifest.sourceSha256) || !digest(manifest.contractSha256)) throw new Error("Invalid registry candidate");
+  if (!names[manifest.family] || manifest.formatVersion !== 1 || manifest.kind !== "sdk-package-artifacts" || manifest.publishable !== false || !digest3(manifest.sourceSha256) || !digest3(manifest.contractSha256)) throw new Error("Invalid registry candidate");
   const rendered = renderReleaseVersion(manifest.family, manifest.canonicalVersion, {
     availability: manifest.canonicalVersion.includes("-") ? "private" : "public"
   });
   if (rendered.packageVersion !== manifest.packageVersion) throw new Error("Registry version does not match candidate");
   validateArtifactNames(manifest.family, manifest.packageVersion, Object.keys(manifest.files));
-  for (const file of Object.values(manifest.files)) if (!digest(file.sha256) || !Number.isSafeInteger(file.size) || file.size < 1 || file.size > MAX_FILE) throw new Error("Invalid registry file identity");
+  for (const file of Object.values(manifest.files)) if (!digest3(file.sha256) || !Number.isSafeInteger(file.size) || file.size < 1 || file.size > MAX_FILE) throw new Error("Invalid registry file identity");
   const suffix = familyUnits[manifest.family]?.[unit];
   if (!suffix) throw new Error("Unsupported registry publication unit");
   const filename = Object.keys(manifest.files).find((name) => name.endsWith(suffix));
@@ -1754,7 +2166,7 @@ function registryUnitIdentity(manifest, unit) {
     filename,
     ...manifest.files[filename]
   };
-  return { identity: identity2, identitySha256: sha256(jsonBytes2(identity2)) };
+  return { identity: identity2, identitySha256: sha256(jsonBytes3(identity2)) };
 }
 function artifactFileRegistry({
   manifest: input,
@@ -1765,7 +2177,7 @@ function artifactFileRegistry({
   fetchImpl = fetch,
   now = () => (/* @__PURE__ */ new Date()).toISOString()
 }) {
-  const manifest = structuredClone(input), manifestSha256 = sha256(jsonBytes2(manifest));
+  const manifest = structuredClone(input), manifestSha256 = sha256(jsonBytes3(manifest));
   if (!familyUnits[manifest.family]) throw new Error("Unsupported file registry");
   for (const unit of Object.keys(familyUnits[manifest.family])) registryUnitIdentity(manifest, unit);
   if (typeof readArtifact !== "function" || typeof retainEvidence !== "function") throw new Error("Retained artifact and evidence storage are required");
@@ -1836,12 +2248,12 @@ function artifactFileRegistry({
     };
     async function finish(status, actualIdentity2, reason) {
       Object.assign(evidence, { status, reason, ...actualIdentity2 ? { actualIdentity: actualIdentity2 } : {} });
-      const bytes = jsonBytes2(evidence), reference = await retainEvidence(bytes);
+      const bytes = jsonBytes3(evidence), reference = await retainEvidence(bytes);
       if (reference?.sha256 !== sha256(bytes)) throw new Error("Registry observation was not retained correctly");
       return {
         status,
         evidenceSha256: reference.sha256,
-        ...actualIdentity2 ? { identitySha256: sha256(jsonBytes2(actualIdentity2)) } : {}
+        ...actualIdentity2 ? { identitySha256: sha256(jsonBytes3(actualIdentity2)) } : {}
       };
     }
     const unknown = (reason) => finish("unknown", null, reason);
@@ -1849,7 +2261,7 @@ function artifactFileRegistry({
       kind: "sdk-registry-conflict",
       expectedIdentitySha256: identitySha256,
       reason,
-      observationsSha256: sha256(jsonBytes2(evidence.requests))
+      observationsSha256: sha256(jsonBytes3(evidence.requests))
     }, reason);
     const url = {
       typescript: `https://registry.npmjs.org/@reacon-io%2Fsdk/${identity2.version}`,
@@ -1897,20 +2309,20 @@ function artifactFileRegistry({
       if (data.name !== identity2.packageName || data.version !== identity2.version || data.platform !== "ruby") return collision("package-metadata-mismatch");
       if (data.yanked !== false) return data.yanked === true ? collision("file-yanked") : unknown("invalid-yank-status");
       downloadUrl = `https://rubygems.org/gems/${identity2.filename}`;
-      if (data.gem_uri !== downloadUrl || !digest(data.sha)) return unknown("invalid-gem-metadata");
+      if (data.gem_uri !== downloadUrl || !digest3(data.sha)) return unknown("invalid-gem-metadata");
       published = data;
     } else if (manifest.family === "rust") {
       published = data.version;
       if (published?.crate !== identity2.packageName || published.num !== identity2.version) return collision("package-metadata-mismatch");
       if (published.yanked !== false) return published.yanked === true ? collision("file-yanked") : unknown("invalid-yank-status");
-      if (!digest(published.checksum)) return unknown("invalid-crate-checksum");
+      if (!digest3(published.checksum)) return unknown("invalid-crate-checksum");
       downloadUrl = `https://static.crates.io/crates/reacon-sdk/${identity2.filename}`;
     }
     const content = await get(downloadUrl, evidence, MAX_FILE);
     if (content.status !== 200) return unknown("package-download-unavailable");
     const actualIdentity = { ...identity2, sha256: sha256(content.bytes), size: content.bytes.length };
     if (manifest.family === "typescript") {
-      const integrity = `sha512-${createHash4("sha512").update(content.bytes).digest("base64")}`;
+      const integrity = `sha512-${createHash5("sha512").update(content.bytes).digest("base64")}`;
       if (published.integrity !== integrity) return collision("registry-integrity-mismatch");
     } else if (manifest.family === "python") {
       if (published.digests?.sha256 !== actualIdentity.sha256 || published.size !== actualIdentity.size) return collision("registry-integrity-mismatch");
@@ -1945,6 +2357,7 @@ async function runFilePublicationWorker({
   loadPackage,
   upload,
   retainEvidence,
+  verifyArchive,
   fetchImpl = fetch,
   now = () => (/* @__PURE__ */ new Date()).toISOString(),
   wait = (ms) => new Promise((resolve6) => setTimeout(resolve6, ms)),
@@ -1988,7 +2401,8 @@ async function runFilePublicationWorker({
     publishable: false
   };
   const manifestSha256 = sha256(Buffer.from(JSON.stringify(canonical(manifest), null, 2) + "\n"));
-  const expected = registryUnitIdentity(manifest, unitName);
+  const native = family2 === "csharp" ? nugetUnitIdentity(manifest, loaded.bytes) : null;
+  const expected = native ? { ...native, identity: { ...native.identity, ...native.file } } : registryUnitIdentity(manifest, unitName);
   if (manifestSha256 !== pkg.artifactManifestSha256 || expected.identitySha256 !== unit.identitySha256 || !Buffer.isBuffer(loaded.bytes) || loaded.bytes.length !== expected.identity.size || sha256(loaded.bytes) !== expected.identity.sha256) throw new Error("CI package differs from the qualified release");
   const subject = {
     releaseId: releaseId2,
@@ -2000,15 +2414,16 @@ async function runFilePublicationWorker({
     attemptId,
     runId: identity2.workerId
   };
-  const registry = artifactFileRegistry({
+  const registry = await (family2 === "csharp" ? nugetRegistry : artifactFileRegistry)({
     manifest,
     store: store2,
     upload,
     fetchImpl,
     now,
     retainEvidence,
-    readArtifact: async (digest2) => {
-      if (digest2 !== expected.identity.sha256) throw new Error("Unexpected artifact request");
+    ...verifyArchive ? { verifyArchive } : {},
+    readArtifact: async (digest4) => {
+      if (digest4 !== expected.identity.sha256) throw new Error("Unexpected artifact request");
       return loaded.bytes;
     }
   });
@@ -2037,7 +2452,10 @@ async function runFilePublicationWorker({
         "Registry OIDC token request failed; details suppressed",
         "Trusted-publisher request failed; response details suppressed",
         "Invalid trusted-publisher response; details suppressed",
-        "Archive upload outcome is unknown; reconcile the registry"
+        "Archive upload outcome is unknown; reconcile the registry",
+        "NuGet upload outcome unknown; reconcile before retry",
+        "No current durable NuGet publication intent",
+        "Unexpected NuGet credential binding"
       ];
       const recognizedStatus = /^(?:Trusted-publisher request returned HTTP [1-5][0-9]{2}|Archive upload returned HTTP [1-5][0-9]{2}; reconcile the registry)$/.test(error.message);
       uploadFailure = error.publicationDiagnostic ?? { stage: "upload", reason: known.includes(error.message) || recognizedStatus ? error.message : "Unrecognized upload error; details suppressed" };
@@ -2080,29 +2498,42 @@ async function runFilePublicationWorker({
 }
 
 // sdk-generation/ci/publisher/publish-file.mjs
-var directory = dirname2(fileURLToPath3(import.meta.url));
-var configuration = JSON.parse(await readFile2(join4(directory, "configuration.json")));
+var directory = dirname2(fileURLToPath4(import.meta.url));
+var configuration = JSON.parse(await readFile3(join5(directory, "configuration.json")));
 var identity = await githubPublisherIdentity({ configuration, environment: process.env, tokenProvider: () => getIDToken() });
 var family = identity.family;
-if (!["ruby", "rust"].includes(family)) throw Error("Gem or crate publisher required");
+if (!["ruby", "rust", "csharp"].includes(family)) throw Error("Gem, crate or NuGet publisher required");
 var target = filePublicationTarget(family);
 var releaseId = process.env.REACON_RELEASE_ID;
 var attemptPrefix = process.env.REACON_ATTEMPT_ID;
 if (!/^[a-z0-9][a-z0-9-]{0,69}$/.test(attemptPrefix ?? "")) throw Error("Bounded unique attempt prefix required");
 await mkdir3("sdk-release-results", { recursive: true });
-await writeFile2("sdk-release-results/identity.json", JSON.stringify(identity, null, 2) + "\n");
+await writeFile3("sdk-release-results/identity.json", JSON.stringify(identity, null, 2) + "\n");
+if (process.env.REACON_QUALIFY_ONLY === "true") {
+  const report = await qualifyRegistryOidc({
+    family,
+    nugetUsername: configuration.nugetUsername,
+    environment: process.env,
+    tokenProvider: getIDToken,
+    maskCredential: setSecret
+  });
+  await writeFile3("sdk-release-results/registry-qualification.json", JSON.stringify(report, null, 2) + "\n");
+  console.log("Registry trusted publisher verified; no package uploaded.");
+  process.exit(0);
+}
+if (process.env.REACON_QUALIFY_ONLY && process.env.REACON_QUALIFY_ONLY !== "false") throw Error("Invalid qualification mode");
 var artifactId = Number(process.env.REACON_CI_ARTIFACT_ID);
 if (!Number.isSafeInteger(artifactId) || artifactId <= 0 || !process.env.GITHUB_TOKEN) throw Error("Retained CI artifact required");
 var key = Buffer.from(process.env.REACON_GITHUB_APP_PRIVATE_KEY ?? "");
 delete process.env.REACON_GITHUB_APP_PRIVATE_KEY;
 if (!key.length) throw Error("Company release-state reader credential missing");
-var temporary = await mkdtemp3(join4(tmpdir2(), "reacon-file-worker-"));
+var temporary = await mkdtemp4(join5(tmpdir3(), "reacon-file-worker-"));
 var store;
 try {
-  const inventory = JSON.parse(await readFile2(join4(directory, "github-bootstrap.json")));
-  const { packages } = JSON.parse(await readFile2(join4(directory, "package-identities.json")));
+  const inventory = JSON.parse(await readFile3(join5(directory, "github-bootstrap.json")));
+  const { packages } = JSON.parse(await readFile3(join5(directory, "package-identities.json")));
   store = await githubReleaseStateStore({
-    directory: join4(temporary, "state"),
+    directory: join5(temporary, "state"),
     access: "read",
     inventory,
     packages,
@@ -2116,17 +2547,23 @@ try {
     token: process.env.GITHUB_TOKEN,
     maxBytes: 128 * 1024 * 1024
   });
-  const zip = join4(temporary, "ci.zip");
-  await writeFile2(zip, archive);
-  await promisify(execFile)("python3", [join4(directory, "unpack-ci-packages.py"), zip, temporary], { timeout: 3e4 });
-  const manifest = JSON.parse(await readFile2(join4(temporary, "package-manifest.json")));
+  const zip = join5(temporary, "ci.zip");
+  await writeFile3(zip, archive);
+  await promisify(execFile)("python3", [join5(directory, "unpack-ci-packages.py"), zip, temporary], { timeout: 3e4 });
+  const manifest = JSON.parse(await readFile3(join5(temporary, "package-manifest.json")));
   const ciArtifact = { id: artifact.id, archiveSha256: sha256(archive), size: archive.length, workflowRunId: artifact.workflow_run?.id };
-  const requestCredential = registryOidcCredentials({ family, environment: process.env, tokenProvider: getIDToken });
-  const uploader = rubyRustUploader({
+  const requestCredential = registryOidcCredentials({ family, nugetUsername: configuration.nugetUsername, environment: process.env, tokenProvider: getIDToken });
+  const inspectNuget = (input) => inspectNugetArchive({ ...input, toolchainConfiguration: join5(directory, "toolchain-images.json"), inspectorPath: join5(directory, "inspect-nuget-package.py") });
+  const getCredentials = async (input) => {
+    const credential = await requestCredential(input);
+    setSecret(credential.token);
+    return credential;
+  };
+  const uploader = family === "csharp" ? nugetUploader({ inspectArchive: inspectNuget, getCredentials }) : rubyRustUploader({
     family,
     inspectArchive: (input) => inspectRetainedRubyRust({
       ...input,
-      toolchainConfiguration: join4(directory, "toolchain-images.json"),
+      toolchainConfiguration: join5(directory, "toolchain-images.json"),
       inspectorDirectory: directory
     }),
     getCredentials: async (input) => {
@@ -2136,15 +2573,15 @@ try {
     }
   });
   const retainEvidence = async (bytes) => {
-    const digest2 = sha256(bytes);
-    await writeFile2(resolve5("sdk-release-results", `${digest2}.bin`), bytes);
-    return { sha256: digest2, size: bytes.length };
+    const digest4 = sha256(bytes);
+    await writeFile3(resolve5("sdk-release-results", `${digest4}.bin`), bytes);
+    return { sha256: digest4, size: bytes.length };
   };
   for (const unitName of target.units) {
     const snapshot = await store.read(), release = snapshot.state.releases[releaseId];
     if (snapshot.state.activeReleaseId !== releaseId || !release || release.superseded) throw Error("Active reservation required");
     if (release.packages[family].units?.[unitName]?.state === "published") {
-      await writeFile2(`sdk-release-results/${unitName}.json`, JSON.stringify({
+      await writeFile3(`sdk-release-results/${unitName}.json`, JSON.stringify({
         releaseId,
         unit: unitName,
         skipped: true,
@@ -2164,20 +2601,21 @@ try {
       store,
       upload: uploader.upload,
       retainEvidence,
+      ...family === "csharp" ? { verifyArchive: inspectNuget } : {},
       loadPackage: async () => {
-        const suffix = family === "ruby" ? ".gem" : ".crate";
+        const suffix = family === "csharp" ? ".nupkg" : family === "ruby" ? ".gem" : ".crate";
         const names2 = Object.keys(manifest.files);
         if (names2.length !== 1 || !names2[0].endsWith(suffix) || names2.some((name) => !/^[A-Za-z0-9_.-]+$/.test(name))) throw Error("Expected one retained gem or crate");
         const filename = names2.find((name) => name.endsWith(suffix));
-        return { files: manifest.files, bytes: await readFile2(join4(temporary, "artifacts", filename)), ciArtifact };
+        return { files: manifest.files, bytes: await readFile3(join5(temporary, "artifacts", filename)), ciArtifact };
       }
     });
-    await writeFile2(`sdk-release-results/${unitName}.json`, JSON.stringify(report, null, 2) + "\n");
+    await writeFile3(`sdk-release-results/${unitName}.json`, JSON.stringify(report, null, 2) + "\n");
     if (!report.packagePublished) throw Error("Registry outcome requires reconciliation; no automatic retry");
     console.log(`Exact ${unitName} observed in the registry; awaiting coordinator reconciliation.`);
   }
 } finally {
   await store?.close();
   key.fill(0);
-  await rm4(temporary, { recursive: true, force: true });
+  await rm5(temporary, { recursive: true, force: true });
 }
