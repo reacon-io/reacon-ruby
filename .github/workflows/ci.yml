@@ -36,7 +36,13 @@ jobs:
         env:
           REACON_SOURCE_REVISION: ${{ github.sha }}
           REACON_PREBUILT_DIRECTORY: ${{ steps.prebuilt.outputs.directory }}
-        run: node .github/sdk-ci/run.mjs
+        run: |
+          # Owner-writable files permit repeated copies into the result directory.
+          # Consumers still mount this input read-only and verify exact checksums.
+          if [ -n "$REACON_PREBUILT_DIRECTORY" ]; then
+            chmod u+w "$REACON_PREBUILT_DIRECTORY"/artifacts/*
+          fi
+          node .github/sdk-ci/run.mjs
       - name: Retain conformance evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

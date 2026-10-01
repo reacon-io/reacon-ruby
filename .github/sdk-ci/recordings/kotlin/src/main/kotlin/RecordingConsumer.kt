@@ -1,3 +1,4 @@
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import io.reacon.sdk.kotlin.infrastructure.*
 import io.reacon.sdk.kotlin.models.*
 import com.fasterxml.jackson.databind.JsonNode
@@ -21,6 +22,18 @@ fun equalJson(a: JsonNode,b: JsonNode):Boolean = when {
     else -> a==b
 }
 fun main(){
+    for ((input, messageVariant) in listOf(
+        """{"id":"message","name":"Message","weight":1,"templateId":"template","templateVersion":2}""" to true,
+        """{"id":"workflow","name":"Workflow","weight":1,"nextNodeId":"stop","future":{"enabled":true}}""" to false
+    )) {
+        val value = mapper.readValue(input, MailExperimentVariant::class.java)
+        check((value is MailExperimentVariant.MailCadenceMessageExperimentVariant) == messageVariant) { "Experiment selected the wrong branch" }
+        check(equalJson(mapper.valueToTree(value), mapper.readTree(input))) { "Experiment variant lost or injected fields" }
+    }
+    for (input in listOf("null", "[]", "{}", """{"id":"workflow","name":"Workflow","weight":1}""",
+        """{"id":"message","name":"Message","weight":1,"templateId":"template"}""")) {
+        check(runCatching { mapper.readValue(input, MailExperimentVariant::class.java) }.isFailure) { "Incomplete experiment variant accepted" }
+    }
     for (input in listOf("{}", "{\"limit\":2,\"listId\":\"00000000-0000-4000-8000-000000000001\"}", "{\"domain\":\"example.invalid\"}", "{\"email\":\"sdk@example.invalid\",\"idempotencyKey\":\"synthetic-regression-1\",\"firstName\":\"SDK\"}")) {
         val value=mapper.readValue(input,ProductToolRequestInput::class.java)
         check(equalJson(mapper.valueToTree(value),mapper.readTree(input))) { "Product input lost fields" }
@@ -84,7 +97,7 @@ fun main(){
             val record=item["record"];val request=record["request"];val response=record["response"]
             val clazz=Class.forName("io.reacon.sdk.kotlin.apis."+item["apiClass"].asText()).kotlin
             val constructor=clazz.primaryConstructor!!
-            val api=constructor.callBy(mapOf(constructor.parameters.first{it.name=="basePath"} to (System.getenv("REACON_TEST_URL")+"/"+item["id"].asText()))) as ApiClient
+            val api=constructor.callBy(mapOf(constructor.parameters.first{it.name=="client"} to fixtureHttp(System.getenv("REACON_TEST_URL")+"/"+item["id"].asText()))) as ApiClient
             if(request["authentication"].asText()!="none")api.apiKey["X-API-Key"]="recording-kotlin"
             val operation=record["operationId"].asText()
             val method=clazz.memberFunctions.single{it.name==operation}
@@ -114,7 +127,8 @@ fun main(){
                 } else method.callBy(arguments)
             }catch(invocation:InvocationTargetException){throw invocation.cause?:invocation}
             check(response["status"].asInt()<400){"Expected HTTP error"}
-            val actual=mapper.valueToTree<JsonNode>(value)
+            if(response["status"].asInt()==204)check(value==Unit){"Bodyless operation must return Unit"}
+            val actual=mapper.valueToTree<JsonNode>(if(response["status"].asInt()==204)null else value)
             check(equalJson(actual,response["body"])){"Decoded response differs: $actual"}
             result.put("passed",true)
         }catch(error:Throwable){
@@ -133,4 +147,17 @@ fun main(){
     println("$passed/${cases.size()} recorded responses passed through Kotlin methods")
     results.filter{!it["passed"].asBoolean()}.forEach{System.err.println(it)}
     if(passed!=cases.size())kotlin.system.exitProcess(1)
+}
+
+// Test-only HTTP routing; the SDK must emit its fixed production origin.
+fun fixtureHttp(target: String): okhttp3.OkHttpClient {
+    val base = target.toHttpUrl()
+    require(base.host == "127.0.0.1" || base.host == "localhost")
+    val executor = java.util.concurrent.Executors.newCachedThreadPool { runnable -> Thread(runnable, "reacon-fixture-http").apply { isDaemon = true } }
+    return okhttp3.OkHttpClient.Builder().dispatcher(okhttp3.Dispatcher(executor)).addInterceptor { chain ->
+        val request = chain.request()
+        check(request.url.scheme == "https" && request.url.host == "api.reacon.io")
+        val url = base.newBuilder().encodedPath(base.encodedPath.trimEnd('/') + request.url.encodedPath).encodedQuery(request.url.encodedQuery).build()
+        chain.proceed(request.newBuilder().url(url).build())
+    }.build()
 }

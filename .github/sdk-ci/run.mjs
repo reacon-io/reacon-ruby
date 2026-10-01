@@ -1,9 +1,11 @@
+import { fixtureProxyDockerArgs } from './fixed-origin/proxy.mjs';
 import { readFile, writeFile, mkdir, cp, readdir } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 import { startRecordingServer } from './replay-server.mjs';
 import { startStreamServer, streamScenarios } from './stream-server.mjs';
 import { prepareJavaConsumer } from './recordings/java-consumer.mjs';
@@ -42,6 +44,18 @@ async function copyTree(directory) {
   }
 }
 await copyTree(source);
+const sourceSha256 = hash(JSON.stringify(Object.fromEntries(Object.entries(sourceFiles).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))));
+let prebuilt, prebuiltDirectory;
+if (process.env.REACON_PREBUILT_DIRECTORY) {
+  prebuiltDirectory = resolve(process.env.REACON_PREBUILT_DIRECTORY);
+  prebuilt = JSON.parse(await readFile(resolve(prebuiltDirectory, 'manifest.json')));
+  if (prebuilt.kind !== 'sdk-approved-package-input' || prebuilt.formatVersion !== 1 ||
+      prebuilt.family !== family || prebuilt.packageVersion !== manifest.packageVersion ||
+      prebuilt.contractSha256 !== manifest.contractSha256 || prebuilt.sourceSha256 !== sourceSha256 ||
+      prebuilt.suiteManifestSha256 !== hash(manifestBytes) || !/^[a-f0-9]{64}$/.test(prebuilt.transferSha256 ?? '') ||
+      !isDeepStrictEqual(prebuilt.files, await readCiPackageArtifacts(prebuiltDirectory, manifest)))
+    throw Error('Approved package input differs from this source, test suite or retained files');
+}
 const cases = JSON.parse(await readFile(resolve(suite, 'cases.json')));
 const modes = family === 'typescript' ? ['typescript', 'typescript-esm'] : family === 'python' ? ['python', 'python-sync'] : [family];
 const recordings = await startRecordingServer(cases), streams = await startStreamServer();
@@ -56,9 +70,11 @@ try {
     GEM_HOME: '/cache/recording-gems', GEM_PATH: '/cache/recording-gems',
     MAVEN_CONFIG: '/cache/maven', MAVEN_OPTS: '-Duser.home=/cache', GRADLE_USER_HOME: '/cache/gradle',
     CARGO_HOME: '/cache/cargo', CARGO_TARGET_DIR: '/cache/target',
+    ...(prebuilt ? {REACON_REUSE_ARTIFACTS: '/prebuilt/artifacts'} : {}),
     DOTNET_CLI_HOME: '/cache/dotnet', NUGET_PACKAGES: '/cache/nuget', DOTNET_CLI_TELEMETRY_OPTOUT: '1',
   };
-  const args = ['run', '--rm', '--network', 'host', '--user', `${process.getuid()}:${process.getgid()}`,
+  const args = ['run', '--rm', '--network', 'host', ...fixtureProxyDockerArgs(), '--user', `${process.getuid()}:${process.getgid()}`,
+    ...(prebuilt ? ['-v', `${prebuiltDirectory}:/prebuilt:ro`] : []),
     '-v', `${suite}:/ci:ro`, '-v', `${suite}/recordings:/suite:ro`, '-v', `${suite}/streams:/sdk/conformance:ro`,
     '-v', `${work}:/work`, '-v', `${cache}:/cache`, '-v', `${output}:/results`, '-w', '/work',
     ...Object.entries(env).flatMap(([name, value]) => ['-e', `${name}=${value}`]), manifest.image, 'sh', `/ci/${family}.sh`];
@@ -76,11 +92,13 @@ try {
   if (buildExitCode === 0) {
     try {
       const before = await readCiPackageArtifacts(output, manifest);
+      if (prebuilt && !isDeepStrictEqual(prebuilt.files, before)) throw Error('Consumer changed the approved package bytes');
       const streamOutput = resolve(output, 'streaming'); await mkdir(streamOutput);
       if (family === 'java') await cp(resolve(output, 'classpath'), resolve(streamOutput, 'classpath'));
       const streamEnv = {...env, SDK_DIRECTORY: '', REACON_TEST_URL: `${streams.url}/${family}`, REACON_STREAM_BASE_URL: streams.url};
+      delete streamEnv.REACON_REUSE_ARTIFACTS;
       // No /work or parent output mount: the SDK checkout is unavailable.
-      const streamArgs = ['run','--rm','--network','host','--user',`${process.getuid()}:${process.getgid()}`,
+      const streamArgs = ['run','--rm','--network', 'host', ...fixtureProxyDockerArgs(),'--user',`${process.getuid()}:${process.getgid()}`,
         '-v',`${suite}:/ci:ro`,'-v',`${suite}/recordings:/suite:ro`,'-v',`${suite}/streams:/sdk/conformance:ro`,
         '-v',`${resolve(output,'artifacts')}:/artifacts:ro`,'-v',`${cache}:/cache`,
         '-v',`${streamOutput}:/results`,'-w','/results',
@@ -142,7 +160,6 @@ try {
     try { await streams.assertComplete(mode); } catch (error) { failures.push(`${mode}: ${error.message}`); }
   }
   let passed = exitCode === 0 && failures.length === 0;
-  const sourceSha256 = hash(JSON.stringify(Object.fromEntries(Object.entries(sourceFiles).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))));
   let packageArtifacts;
   if (passed) {
     try { packageArtifacts = await writeCiPackageManifest(output, { ...manifest, passed,
@@ -150,6 +167,7 @@ try {
     catch (error) { passed = false; failures.push(`Package retention failed: ${error.message}`); }
   }
   const report = { formatVersion: 1, kind: 'sdk-repository-source-ci', family, passed, exitCode, failures,
+    sdkRebuilt: !prebuilt, ...(prebuilt ? {prebuiltPackageTransferSha256: prebuilt.transferSha256} : {}),
     sourceRevision: process.env.REACON_SOURCE_REVISION ?? null,
     sourceSha256, ...(packageArtifacts ? { packageArtifacts } : {}),
     image: manifest.image, packageVersion: manifest.packageVersion, contractSha256: manifest.contractSha256,

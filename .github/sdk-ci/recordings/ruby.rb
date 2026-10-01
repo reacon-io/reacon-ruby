@@ -1,3 +1,4 @@
+require [File.join(__dir__, '../fixed-origin/http.rb'), File.join(__dir__, 'fixed-origin/http.rb'), '/fixed-origin/http.rb', '/sdk/conformance/fixed-origin/http.rb'].find { |path| File.exist?(path) }
 gem 'reacon-sdk', ENV.fetch('REACON_SDK_PACKAGE_VERSION')
 require 'reacon-sdk'
 require 'json'
@@ -35,7 +36,7 @@ cases.each do |item|
   begin
     uri=URI(ENV.fetch('REACON_TEST_URL')+'/'+item['id'])
     config=Reacon::Configuration.new
-    config.scheme=uri.scheme; config.host="#{uri.host}:#{uri.port}"; config.base_path=uri.path;config.server_index=nil
+    route_configuration(config, uri.to_s)
     config.api_key['X-API-Key']='recording-ruby' unless item['record']['request']['authentication']=='none'
     api=Reacon.const_get(item['apiClass']).new(Reacon::ApiClient.new(config))
     params=item['parameters'].to_h { |k,v| [snake(k).to_sym,v] }

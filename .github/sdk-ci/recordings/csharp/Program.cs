@@ -64,9 +64,29 @@ foreach(var item in cases.RootElement.EnumerateArray()) {
         var record=item.GetProperty("record");var request=record.GetProperty("request");var expected=record.GetProperty("response");
         var services=new ServiceCollection();services.AddLogging();
         services.AddApi(config=>config.AddTokens(request.GetProperty("authentication").GetString()=="none"?new MissingToken():new ApiKeyToken("recording-csharp",ClientUtils.ApiKeyHeader.X_API_Key,prefix:""))
-            .AddApiHttpClients(client=>client.BaseAddress=new Uri(Environment.GetEnvironmentVariable("REACON_TEST_URL")+"/"+id)));
+            .AddApiHttpClients(builder: builder=>builder.AddHttpMessageHandler(()=>new FixtureHandler(Environment.GetEnvironmentVariable("REACON_TEST_URL")+"/"+id))));
         using var provider=services.BuildServiceProvider();
         var options=provider.GetRequiredService<JsonSerializerOptionsProvider>().Options;
+        if (id==cases.RootElement[0].GetProperty("id").GetString()) {
+            var populatedBody=cases.RootElement.EnumerateArray().Single(x=>x.GetProperty("id").GetString()=="getMailPortfolio--synthetic-team").GetProperty("record").GetProperty("response").GetProperty("body");
+            foreach(var portfolioJson in new[]{"{\"portfolio\":null,\"teams\":[],\"suppressions\":[],\"future\":{\"items\":[1,null]}}",populatedBody.GetRawText()}) {
+                using var expectedPortfolio=JsonDocument.Parse(portfolioJson);
+                var portfolio=JsonSerializer.Deserialize<MailGetPortfolioResponse200>(portfolioJson,options)!;
+                bool empty=expectedPortfolio.RootElement.GetProperty("portfolio").ValueKind==JsonValueKind.Null;
+                Check((portfolio.MailGetPortfolioResponse200AnyOf!=null)==empty && (portfolio.MailGetPortfolioResponse200AnyOf1!=null)!=empty,"Portfolio selected both or incorrect alternatives");
+                Check(Equal(JsonSerializer.SerializeToElement(portfolio,options),expectedPortfolio.RootElement),"Portfolio alternatives duplicated or lost fields");
+            }
+            foreach(var invalid in new[]{"{}","{\"portfolio\":17,\"teams\":[],\"suppressions\":[]}","{\"portfolio\":null,\"teams\":[{}],\"suppressions\":[]}","{\"portfolio\":null,\"teams\":[],\"suppressions\":[{}]}"}) {
+                bool rejected=false;
+                try{JsonSerializer.Deserialize<MailGetPortfolioResponse200>(invalid,options);}catch(Exception error)when(error is ArgumentException or JsonException){rejected=true;}
+                Check(rejected,"Malformed portfolio alternative accepted");
+            }
+            var ambiguous=JsonSerializer.Deserialize<MailGetPortfolioResponse200>(populatedBody.GetRawText(),options)!;
+            ambiguous.MailGetPortfolioResponse200AnyOf=JsonSerializer.Deserialize<MailGetPortfolioResponse200AnyOf>("{\"portfolio\":null,\"teams\":[],\"suppressions\":[]}",options)!;
+            bool ambiguousRejected=false;
+            try{JsonSerializer.SerializeToElement(ambiguous,options);}catch(JsonException){ambiguousRejected=true;}
+            Check(ambiguousRejected,"Ambiguous portfolio serialization accepted");
+        }
         var absent=JsonSerializer.SerializeToElement(new UpdateLeadRequest(),options);
         Check(absent.EnumerateObject().Count()==0,"Omitted patch fields were injected");
         var explicitNull=JsonSerializer.SerializeToElement(new UpdateLeadRequest(personFirstName:new Option<string?>(null)),options);
@@ -110,7 +130,12 @@ foreach(var item in cases.RootElement.EnumerateArray()) {
         var task=(Task)method.Invoke(api,arguments)!;await task;
         var response=(IApiResponse)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Check((int)response.StatusCode==expected.GetProperty("status").GetInt32(),"HTTP status differs");
-        var decoder=(int)response.StatusCode switch {200=>"Ok",201=>"Created",400=>"BadRequest",401=>"Unauthorized",404=>"NotFound",409=>"Conflict",_=>throw new Exception("Add explicit status decoder")};
+        if((int)response.StatusCode==204) {
+            Check(response.RawContent==string.Empty && expected.GetProperty("body").ValueKind==JsonValueKind.Null,"Bodyless response contains content");
+            Check((bool)response.GetType().GetProperty("IsNoContent")!.GetValue(response)!,"Missing native NoContent status");
+            results.Add(new{id,passed=true});passed++;continue;
+        }
+        var decoder=(int)response.StatusCode switch {200=>"Ok",201=>"Created",400=>"BadRequest",401=>"Unauthorized",402=>"PaymentRequired",422=>"UnprocessableContent",404=>"NotFound",409=>"Conflict",412=>"PreconditionFailed",_=>throw new Exception("Add explicit status decoder")};
         var body=response.GetType().GetMethod(decoder,Type.EmptyTypes)!.Invoke(response,null);
         var actual=JsonSerializer.SerializeToElement(body,body?.GetType()??typeof(object),options);
         Check(Equal(actual,expected.GetProperty("body")),"Decoded response differs: "+actual.GetRawText());
@@ -125,4 +150,16 @@ return passed==cases.RootElement.GetArrayLength()?0:1;
 sealed class MissingToken:ApiKeyToken {
     public MissingToken():base("",ClientUtils.ApiKeyHeader.X_API_Key,prefix:""){}
     public override void UseInHeader(HttpRequestMessage request){}
+}
+
+
+sealed class FixtureHandler(string target) : DelegatingHandler {
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+        var original = request.RequestUri!;
+        if (original.Scheme != "https" || original.Host != "api.reacon.io") throw new InvalidOperationException("SDK changed its fixed API origin");
+        var fixture = new Uri(target);
+        if (fixture.Host != "127.0.0.1") throw new InvalidOperationException("Loopback fixtures only");
+        request.RequestUri = new Uri(target.TrimEnd('/') + original.PathAndQuery);
+        return base.SendAsync(request, cancellationToken);
+    }
 }

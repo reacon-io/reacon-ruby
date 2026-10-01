@@ -2,6 +2,29 @@ use reacon_sdk::models;
 use serde_json::{json, Value};
 
 #[test]
+fn experiment_variants_preserve_workflow_message_and_extension_fields() {
+    for value in [
+        json!({"id":"A","name":"Workflow","nextNodeId":"stop","weight":1.0,"extension":{"enabled":true}}),
+        json!({"id":"B","name":"Message","templateId":"template","templateVersion":1.0,"weight":1.0,"extension":null}),
+        json!({"id":"C","name":"Both","templateId":"template","templateVersion":1.0,"nextNodeId":"stop","weight":1.0}),
+    ] {
+        let variant: models::MailExperimentVariant=serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(variant).unwrap(),value);
+    }
+}
+
+#[test]
+fn experiment_variants_reject_missing_required_fields_and_wrong_types() {
+    for value in [
+        json!({"id":"A","name":"Incomplete","weight":1.0}),
+        json!({"id":"A","name":"Workflow","nextNodeId":null,"weight":1.0}),
+        json!({"id":"B","name":"Message","templateId":"template","templateVersion":"wrong","weight":1.0}),
+    ] {
+        assert!(serde_json::from_value::<models::MailExperimentVariant>(value).is_err());
+    }
+}
+
+#[test]
 fn product_inputs_preserve_empty_and_overlapping_shapes() {
     for value in [
         json!({}),

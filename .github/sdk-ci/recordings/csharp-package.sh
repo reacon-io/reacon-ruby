@@ -1,7 +1,11 @@
 #!/bin/sh
 set -eu
 : "${REACON_SDK_PACKAGE_VERSION:?Missing SDK version}"
-dotnet pack src/Reacon.Sdk/Reacon.Sdk.csproj -c Release --nologo -v minimal -o /results/artifacts
+if [ -n "${REACON_REUSE_ARTIFACTS:-}" ]; then
+  cp "$REACON_REUSE_ARTIFACTS/"* /results/artifacts/
+else
+  dotnet pack src/Reacon.Sdk/Reacon.Sdk.csproj -c Release --nologo -v minimal -o /results/artifacts
+fi
 # Only the disposable unpublished SDK version is replaced; dependency caches remain.
 rm -rf "/cache/nuget/reacon.sdk/$REACON_SDK_PACKAGE_VERSION" /results/consumer
 mkdir -p /results/consumer
