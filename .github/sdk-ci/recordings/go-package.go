@@ -31,8 +31,10 @@ func command(directory string, args ...string) {
 	must(cmd.Run())
 }
 func main() {
-	const module = "github.com/reacon-io/reacon-go"
+	module := "github.com/reacon-io/reacon-go"
 	version := "v" + os.Getenv("REACON_SDK_PACKAGE_VERSION")
+	major := strings.Split(strings.TrimPrefix(version, "v"), ".")[0]
+	if major != "0" && major != "1" { module += "/v" + major }
 	// Go may cache a module's file inventory as immutable for its version/path.
 	// Development generation can reuse a version while adding runtime files, so
 	// each native installation needs a new module-cache path, not an in-place reset.
@@ -44,6 +46,7 @@ func main() {
 	prefix := root + "/proxy/" + module + "/@v/"
 	mod, err := os.ReadFile(source + "/go.mod")
 	must(err)
+	if !strings.HasPrefix(string(mod), "module "+module+"\n") { panic("Go version and module path differ") }
 	write(prefix+version+".mod", mod)
 	info, err := json.Marshal(map[string]string{"Version": version, "Time": "2026-09-27T00:00:00Z"})
 	must(err)
@@ -124,7 +127,7 @@ func main() {
 	write(consumer+"/go.mod", []byte("module reacon-recording-consumer\n\ngo 1.23\n\nrequire "+module+" "+version+"\n"))
 	data, err := os.ReadFile("/suite/go.go")
 	must(err)
-	write(consumer+"/main.go", data)
+	write(consumer+"/main.go", []byte(strings.ReplaceAll(string(data), "github.com/reacon-io/reacon-go\"", module+"\"")))
 	data, err = json.Marshal(operations)
 	must(err)
 	write(consumer+"/operations.json", data)
