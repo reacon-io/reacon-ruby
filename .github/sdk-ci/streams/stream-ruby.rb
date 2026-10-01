@@ -1,3 +1,4 @@
+require [File.join(__dir__, '../fixed-origin/http.rb'), File.join(__dir__, 'fixed-origin/http.rb'), '/fixed-origin/http.rb', '/sdk/conformance/fixed-origin/http.rb'].find { |path| File.exist?(path) }
 require 'reacon-sdk'
 require 'net/http'
 
@@ -5,8 +6,12 @@ def check(value, message)
   raise message unless value
 end
 url = ENV.fetch('REACON_TEST_URL')
-client = Reacon::VerificationStreamClient.new(api_key: 'synthetic-ruby', base_url: url)
-isolated = Reacon::VerificationStreamClient.new(api_key: 'isolated-ruby', base_url: url)
+ENV['http_proxy'] = fixture_proxy(url).to_s
+ENV['HTTP_PROXY'] = nil
+ENV['no_proxy'] = ''
+ENV['NO_PROXY'] = ''
+client = Reacon::VerificationStreamClient.new(api_key: 'synthetic-ruby', ca_file: fixture_ca)
+isolated = Reacon::VerificationStreamClient.new(api_key: 'isolated-ruby', ca_file: fixture_ca)
 client.stream_verification('never@example.test')
 collect = lambda do |scenario, owner = client, **settings|
   events = []

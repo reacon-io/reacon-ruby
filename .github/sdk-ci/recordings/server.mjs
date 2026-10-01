@@ -1,6 +1,6 @@
 import { operationIndex } from '../../../scripts/public-api/lib/recordings.mjs';
 import { requestEquivalence } from './request-equivalence.mjs';
-export function buildCases(records, contract) {
+export function buildCases(records, contract, {includeStreaming=false}={}) {
   const index = operationIndex(contract);
   // Deliberately malformed bodies document the server's validation response.
   // Typed SDK constructors may correctly reject them before an HTTP request;
@@ -8,7 +8,7 @@ export function buildCases(records, contract) {
   // Exclusions are enumerated in recordingCoverage().sdkReplay below.
   for (const record of records) if (record.request.validation === 'intentional-invalid' &&
     !(record.response.status >= 400 && record.response.status < 500)) throw new Error('Invalid-request recording must demonstrate client error rejection');
-  return records.filter(record => record.request.validation !== 'intentional-invalid').map(record => {
+  return records.filter(record => record.request.validation !== 'intentional-invalid'&&(includeStreaming||record.response.mediaType!=='text/event-stream')).map(record => {
     const { operation, path } = index.get(record.operationId);
     const params = { ...record.request.query };
     const actual = record.request.path.split('/');

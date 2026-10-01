@@ -148,8 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut results = Vec::new();
     for item in &cases {
         let id = item["id"].as_str().ok_or("Missing case ID")?;
-        let mut config = Configuration::new();
-        config.base_path = format!("{}/{}", std::env::var("REACON_TEST_URL")?, id);
+        let mut config = Configuration::with_client_builder(fixture_builder(&format!("{}/{}", std::env::var("REACON_TEST_URL")?, id), reqwest::Client::builder()))?;
         if item["record"]["request"]["authentication"] != "none" {
             config.api_key = Some(ApiKey {
                 prefix: None,
@@ -187,4 +186,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
     Ok(())
+}
+
+// Test transport: SDK requests retain https://api.reacon.io and normal TLS checks.
+fn fixture_builder(target: &str, builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    let url = reqwest::Url::parse(target).unwrap();
+    assert!(matches!(url.host_str(), Some("127.0.0.1" | "localhost")));
+    let mut proxy = reqwest::Url::parse(&std::env::var("REACON_FIXTURE_PROXY_ENDPOINT").expect("Fixture proxy required")).unwrap();
+    let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut encoded = String::new();
+    for chunk in target.as_bytes().chunks(3) {
+        let n = (u32::from(chunk[0]) << 16) | (u32::from(*chunk.get(1).unwrap_or(&0)) << 8) | u32::from(*chunk.get(2).unwrap_or(&0));
+        for i in 0..chunk.len()+1 { encoded.push(alphabet[((n >> (18-i*6)) & 63) as usize] as char); }
+    }
+    proxy.set_username(&encoded).unwrap();
+    let builder = builder.proxy(reqwest::Proxy::https(proxy).unwrap());
+    if url.scheme() == "http" { builder.add_root_certificate(reqwest::Certificate::from_pem(std::env::var("REACON_FIXTURE_CA_PEM").unwrap().as_bytes()).unwrap()) } else { builder }
 }

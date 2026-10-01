@@ -27,9 +27,9 @@ module Reacon
 
   # Credentials are per instance. Each active stream owns its Net::HTTP connection.
   class VerificationStreamClient
-    def initialize(api_key:, base_url: 'https://api.reacon.io', ca_file: nil)
+    def initialize(api_key:, ca_file: nil)
       raise ArgumentError, 'api_key is required' if api_key.to_s.strip.empty?
-      @key, @base_url, @ca_file = api_key, base_url.delete_suffix('/'), ca_file
+      @key, @base_url, @ca_file = api_key, 'https://api.reacon.io', ca_file
     end
     # Creating a stream does no I/O. Use #each with a block; #close cancels from another thread.
     def stream_verification(email, only_if_free: nil, cache_max_age: nil, idle_timeout: 30, total_timeout: 300)

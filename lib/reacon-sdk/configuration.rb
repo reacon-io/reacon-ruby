@@ -13,13 +13,13 @@ Generator version: 7.25.0
 module Reacon
   class Configuration
     # Defines url scheme
-    attr_accessor :scheme
+    attr_reader :scheme
 
     # Defines url host
-    attr_accessor :host
+    attr_reader :host
 
     # Defines url base path
-    attr_accessor :base_path
+    attr_reader :base_path
 
     # Define server configuration index
     attr_accessor :server_index
@@ -195,31 +195,12 @@ module Reacon
       yield(self) if block_given?
     end
 
-    def scheme=(scheme)
-      # remove :// from scheme
-      @scheme = scheme.sub(/:\/\//, '')
-    end
 
-    def host=(host)
-      # remove http(s):// and anything after a slash
-      @host = host.sub(/https?:\/\//, '').split('/').first
-    end
 
-    def base_path=(base_path)
-      # Add leading and trailing slashes to base_path
-      @base_path = "/#{base_path}".gsub(/\/+/, '/')
-      @base_path = '' if @base_path == '/'
-    end
 
     # Returns base URL for specified operation based on server settings
     def base_url(operation = nil)
-      return "#{scheme}://#{[host, base_path].join('/').gsub(/\/+/, '/')}".sub(/\/+\z/, '') if ignore_operation_servers
-      if operation_server_settings.key?(operation) then
-        index = server_operation_index.fetch(operation, server_index)
-        server_url(index.nil? ? 0 : index, server_operation_variables.fetch(operation, server_variables), operation_server_settings[operation])
-      else
-        server_index.nil? ? "#{scheme}://#{[host, base_path].join('/').gsub(/\/+/, '/')}".sub(/\/+\z/, '') : server_url(server_index, server_variables, nil)
-      end
+      'https://api.reacon.io'
     end
 
     # Gets API key (with prefix if set).

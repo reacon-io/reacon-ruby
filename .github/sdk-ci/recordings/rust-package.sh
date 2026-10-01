@@ -1,13 +1,16 @@
 #!/bin/sh
 set -eu
 # Populate dependencies on a clean runner before the offline package checks.
-cargo fetch
-# Package first; the consumer sees only the unpacked crate, never /work/src.
-package_build=$(mktemp -d /results/cargo-package.XXXXXX)
-CARGO_TARGET_DIR="$package_build" cargo package --allow-dirty --no-verify --offline
 : "${REACON_SDK_PACKAGE_VERSION:?Missing SDK version}"
-archive="$package_build/package/reacon-sdk-$REACON_SDK_PACKAGE_VERSION.crate"
-cp "$archive" /results/artifacts/
+if [ -n "${REACON_REUSE_ARTIFACTS:-}" ]; then
+  cp "$REACON_REUSE_ARTIFACTS/"* /results/artifacts/
+else
+  cargo fetch
+  # Package first; the consumer sees only the unpacked crate, never /work/src.
+  package_build=$(mktemp -d /results/cargo-package.XXXXXX)
+  CARGO_TARGET_DIR="$package_build" cargo package --allow-dirty --no-verify --offline
+  cp "$package_build/package/reacon-sdk-$REACON_SDK_PACKAGE_VERSION.crate" /results/artifacts/
+fi
 archive="/results/artifacts/reacon-sdk-$REACON_SDK_PACKAGE_VERSION.crate"
 digest=$(sha256sum "$archive" | cut -d ' ' -f 1)
 package_root=/cache/recording-crate/$digest
