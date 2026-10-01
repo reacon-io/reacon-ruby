@@ -62,7 +62,7 @@ module Reacon
     def self.openapi_types
       {
         :'experiment_key' => :'String',
-        :'metadata' => :'Object',
+        :'metadata' => :'Hash<String, Object>',
         :'occurred_at' => :'Time',
         :'outcome' => :'String',
         :'revision' => :'Float',
@@ -102,7 +102,9 @@ module Reacon
       end
 
       if attributes.key?(:'metadata')
-        self.metadata = attributes[:'metadata']
+        if (value = attributes[:'metadata']).is_a?(Hash)
+          self.metadata = value
+        end
       else
         self.metadata = nil
       end

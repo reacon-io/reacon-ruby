@@ -84,7 +84,7 @@ module Reacon
       {
         :'created_at' => :'Time',
         :'credential_id' => :'String',
-        :'cursors' => :'Object',
+        :'cursors' => :'Hash<String, MailImapCursor>',
         :'imap' => :'MailStoredImapSettings',
         :'integration_connection_id' => :'String',
         :'last_error_code' => :'String',
@@ -134,7 +134,9 @@ module Reacon
       end
 
       if attributes.key?(:'cursors')
-        self.cursors = attributes[:'cursors']
+        if (value = attributes[:'cursors']).is_a?(Hash)
+          self.cursors = value
+        end
       else
         self.cursors = nil
       end

@@ -56,7 +56,7 @@ module Reacon
         :'id' => :'String',
         :'subject' => :'String',
         :'text' => :'String',
-        :'variables' => :'Object',
+        :'variables' => :'Hash<String, Object>',
         :'weight' => :'Float'
       }
     end
@@ -106,7 +106,9 @@ module Reacon
       end
 
       if attributes.key?(:'variables')
-        self.variables = attributes[:'variables']
+        if (value = attributes[:'variables']).is_a?(Hash)
+          self.variables = value
+        end
       end
 
       if attributes.key?(:'weight')

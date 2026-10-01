@@ -50,10 +50,10 @@ module Reacon
     def self.openapi_types
       {
         :'cadence_steps' => :'Array<MailOperationalAnalyticsOverviewCadenceStepsInner>',
-        :'reply_labels' => :'Object',
+        :'reply_labels' => :'Hash<String, Float>',
         :'sample_limited' => :'Boolean',
-        :'stages' => :'Object',
-        :'task_outcomes' => :'Object'
+        :'stages' => :'Hash<String, Float>',
+        :'task_outcomes' => :'Hash<String, Float>'
       }
     end
 
@@ -88,7 +88,9 @@ module Reacon
       end
 
       if attributes.key?(:'reply_labels')
-        self.reply_labels = attributes[:'reply_labels']
+        if (value = attributes[:'reply_labels']).is_a?(Hash)
+          self.reply_labels = value
+        end
       else
         self.reply_labels = nil
       end
@@ -100,13 +102,17 @@ module Reacon
       end
 
       if attributes.key?(:'stages')
-        self.stages = attributes[:'stages']
+        if (value = attributes[:'stages']).is_a?(Hash)
+          self.stages = value
+        end
       else
         self.stages = nil
       end
 
       if attributes.key?(:'task_outcomes')
-        self.task_outcomes = attributes[:'task_outcomes']
+        if (value = attributes[:'task_outcomes']).is_a?(Hash)
+          self.task_outcomes = value
+        end
       else
         self.task_outcomes = nil
       end

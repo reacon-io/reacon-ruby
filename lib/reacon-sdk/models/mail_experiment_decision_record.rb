@@ -70,7 +70,7 @@ module Reacon
         :'id' => :'String',
         :'method' => :'String',
         :'reason' => :'String',
-        :'result_snapshot' => :'Object',
+        :'result_snapshot' => :'Hash<String, Object>',
         :'revision' => :'Float',
         :'tenant_id' => :'String',
         :'winner_variant_id' => :'String'
@@ -136,7 +136,9 @@ module Reacon
       end
 
       if attributes.key?(:'result_snapshot')
-        self.result_snapshot = attributes[:'result_snapshot']
+        if (value = attributes[:'result_snapshot']).is_a?(Hash)
+          self.result_snapshot = value
+        end
       else
         self.result_snapshot = nil
       end
