@@ -52,7 +52,7 @@ module Reacon
         :'aggregate_id' => :'String',
         :'id' => :'String',
         :'occurred_at' => :'Time',
-        :'payload' => :'Object',
+        :'payload' => :'Hash<String, Object>',
         :'type' => :'String'
       }
     end
@@ -98,7 +98,9 @@ module Reacon
       end
 
       if attributes.key?(:'payload')
-        self.payload = attributes[:'payload']
+        if (value = attributes[:'payload']).is_a?(Hash)
+          self.payload = value
+        end
       else
         self.payload = nil
       end

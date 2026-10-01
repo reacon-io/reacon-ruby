@@ -13,6 +13,13 @@ import { prepareRustConsumer } from './recordings/rust-consumer.mjs';
 import { writeCiPackageManifest, readCiPackageArtifacts } from './package-artifacts.mjs';
 import { installedStreamRuntimeEvidence } from './streaming-package-evidence.mjs';
 
+const resourceArgs = [];
+if (process.env.REACON_BUILD_CPUS || process.env.REACON_BUILD_MEMORY_BYTES) {
+  const cpus = Number(process.env.REACON_BUILD_CPUS), memory = Number(process.env.REACON_BUILD_MEMORY_BYTES);
+  if (!Number.isSafeInteger(cpus) || cpus < 1 || cpus > 32 || !Number.isSafeInteger(memory) || memory < 512 * 1024 ** 2) throw Error('Invalid scheduled compiler resources');
+  resourceArgs.push('--cpus', String(cpus), '--memory', String(memory));
+}
+
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const suite = dirname(fileURLToPath(import.meta.url));
 const manifestBytes = await readFile(resolve(suite, 'manifest.json'));
@@ -63,6 +70,7 @@ try {
   if (family === 'java') await prepareJavaConsumer(work, cases, output, manifest.packageVersion);
   if (family === 'rust') await prepareRustConsumer(work, cases, output, manifest.packageVersion);
   const env = {
+    ...(process.env.REACON_BUILD_CPUS ? { CARGO_BUILD_JOBS: process.env.REACON_BUILD_CPUS, GOMAXPROCS: process.env.REACON_BUILD_CPUS, JAVA_TOOL_OPTIONS: '-Xmx768m -XX:ActiveProcessorCount=' + process.env.REACON_BUILD_CPUS } : {}),
     SDK_DIRECTORY: '/work', REACON_SDK_PACKAGE_VERSION: manifest.packageVersion,
     REACON_CASES_FILE: '/ci/cases.json', REACON_RECORDINGS_URL: recordings.url,
     REACON_TEST_URL: `${recordings.url}/${family}`, REACON_STREAM_TEST_URL: `${streams.url}/${family}`,
@@ -73,7 +81,7 @@ try {
     ...(prebuilt ? {REACON_REUSE_ARTIFACTS: '/prebuilt/artifacts'} : {}),
     DOTNET_CLI_HOME: '/cache/dotnet', NUGET_PACKAGES: '/cache/nuget', DOTNET_CLI_TELEMETRY_OPTOUT: '1',
   };
-  const args = ['run', '--rm', '--network', 'host', ...fixtureProxyDockerArgs(), '--user', `${process.getuid()}:${process.getgid()}`,
+  const args = ['run', '--rm', ...resourceArgs, '--network', 'host', ...fixtureProxyDockerArgs(), '--user', `${process.getuid()}:${process.getgid()}`,
     ...(prebuilt ? ['-v', `${prebuiltDirectory}:/prebuilt:ro`] : []),
     '-v', `${suite}:/ci:ro`, '-v', `${suite}/recordings:/suite:ro`, '-v', `${suite}/streams:/sdk/conformance:ro`,
     '-v', `${work}:/work`, '-v', `${cache}:/cache`, '-v', `${output}:/results`, '-w', '/work',
@@ -98,7 +106,7 @@ try {
       const streamEnv = {...env, SDK_DIRECTORY: '', REACON_TEST_URL: `${streams.url}/${family}`, REACON_STREAM_BASE_URL: streams.url};
       delete streamEnv.REACON_REUSE_ARTIFACTS;
       // No /work or parent output mount: the SDK checkout is unavailable.
-      const streamArgs = ['run','--rm','--network', 'host', ...fixtureProxyDockerArgs(),'--user',`${process.getuid()}:${process.getgid()}`,
+      const streamArgs = ['run','--rm', ...resourceArgs,'--network', 'host', ...fixtureProxyDockerArgs(),'--user',`${process.getuid()}:${process.getgid()}`,
         '-v',`${suite}:/ci:ro`,'-v',`${suite}/recordings:/suite:ro`,'-v',`${suite}/streams:/sdk/conformance:ro`,
         '-v',`${resolve(output,'artifacts')}:/artifacts:ro`,'-v',`${cache}:/cache`,
         '-v',`${streamOutput}:/results`,'-w','/results',

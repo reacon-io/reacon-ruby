@@ -275,6 +275,7 @@ lib/reacon-sdk/models/mail_get_tracking_domain_response200.rb
 lib/reacon-sdk/models/mail_get_tracking_domain_response200_domain.rb
 lib/reacon-sdk/models/mail_get_webhooks_response200.rb
 lib/reacon-sdk/models/mail_get_webhooks_response200_subscriptions_inner.rb
+lib/reacon-sdk/models/mail_imap_cursor.rb
 lib/reacon-sdk/models/mail_inbox_message_record.rb
 lib/reacon-sdk/models/mail_mail_address.rb
 lib/reacon-sdk/models/mail_mail_portfolio.rb
@@ -345,8 +346,6 @@ lib/reacon-sdk/models/mail_post_cadences_response200.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_duplicate_response201.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_request.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200.rb
-lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_any_of.rb
-lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_any_of1.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_launch_response200_campaign.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_state_request.rb
 lib/reacon-sdk/models/mail_post_campaigns_by_campaign_id_state_response200.rb

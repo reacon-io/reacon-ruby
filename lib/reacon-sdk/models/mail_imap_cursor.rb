@@ -14,19 +14,19 @@ require 'date'
 require 'time'
 
 module Reacon
-  class MailPostCampaignsByCampaignIdLaunchResponse200AnyOf < ApiModelBase
-    attr_accessor :campaign
+  class MailImapCursor < ApiModelBase
+    attr_accessor :last_uid
 
-    attr_accessor :draft
+    attr_accessor :mailbox_path
 
-    attr_accessor :sequences
+    attr_accessor :uid_validity
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'campaign' => :'campaign',
-        :'draft' => :'draft',
-        :'sequences' => :'sequences'
+        :'last_uid' => :'lastUid',
+        :'mailbox_path' => :'mailboxPath',
+        :'uid_validity' => :'uidValidity'
       }
     end
 
@@ -43,9 +43,9 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'campaign' => :'MailPostCampaignsByCampaignIdLaunchResponse200Campaign',
-        :'draft' => :'MailCampaignDraftRecord',
-        :'sequences' => :'Array<Object>'
+        :'last_uid' => :'Float',
+        :'mailbox_path' => :'String',
+        :'uid_validity' => :'String'
       }
     end
 
@@ -59,36 +59,34 @@ module Reacon
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `Reacon::MailPostCampaignsByCampaignIdLaunchResponse200AnyOf` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `Reacon::MailImapCursor` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `Reacon::MailPostCampaignsByCampaignIdLaunchResponse200AnyOf`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `Reacon::MailImapCursor`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'campaign')
-        self.campaign = attributes[:'campaign']
+      if attributes.key?(:'last_uid')
+        self.last_uid = attributes[:'last_uid']
       else
-        self.campaign = nil
+        self.last_uid = nil
       end
 
-      if attributes.key?(:'draft')
-        self.draft = attributes[:'draft']
+      if attributes.key?(:'mailbox_path')
+        self.mailbox_path = attributes[:'mailbox_path']
       else
-        self.draft = nil
+        self.mailbox_path = nil
       end
 
-      if attributes.key?(:'sequences')
-        if (value = attributes[:'sequences']).is_a?(Array)
-          self.sequences = value
-        end
+      if attributes.key?(:'uid_validity')
+        self.uid_validity = attributes[:'uid_validity']
       else
-        self.sequences = nil
+        self.uid_validity = nil
       end
     end
 
@@ -97,24 +95,16 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
-      if @campaign.nil?
-        invalid_properties.push('invalid value for "campaign", campaign cannot be nil.')
+      if @last_uid.nil?
+        invalid_properties.push('invalid value for "last_uid", last_uid cannot be nil.')
       end
 
-      if @draft.nil?
-        invalid_properties.push('invalid value for "draft", draft cannot be nil.')
+      if @mailbox_path.nil?
+        invalid_properties.push('invalid value for "mailbox_path", mailbox_path cannot be nil.')
       end
 
-      if @sequences.nil?
-        invalid_properties.push('invalid value for "sequences", sequences cannot be nil.')
-      end
-
-      if @sequences.length > 0
-        invalid_properties.push('invalid value for "sequences", number of items must be less than or equal to 0.')
-      end
-
-      if @sequences.length < 0
-        invalid_properties.push('invalid value for "sequences", number of items must be greater than or equal to 0.')
+      if @uid_validity.nil?
+        invalid_properties.push('invalid value for "uid_validity", uid_validity cannot be nil.')
       end
 
       invalid_properties
@@ -124,50 +114,40 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
-      return false if @campaign.nil?
-      return false if @draft.nil?
-      return false if @sequences.nil?
-      return false if @sequences.length > 0
-      return false if @sequences.length < 0
+      return false if @last_uid.nil?
+      return false if @mailbox_path.nil?
+      return false if @uid_validity.nil?
       true
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] campaign Value to be assigned
-    def campaign=(campaign)
-      if campaign.nil?
-        fail ArgumentError, 'campaign cannot be nil'
+    # @param [Object] last_uid Value to be assigned
+    def last_uid=(last_uid)
+      if last_uid.nil?
+        fail ArgumentError, 'last_uid cannot be nil'
       end
 
-      @campaign = campaign
+      @last_uid = last_uid
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] draft Value to be assigned
-    def draft=(draft)
-      if draft.nil?
-        fail ArgumentError, 'draft cannot be nil'
+    # @param [Object] mailbox_path Value to be assigned
+    def mailbox_path=(mailbox_path)
+      if mailbox_path.nil?
+        fail ArgumentError, 'mailbox_path cannot be nil'
       end
 
-      @draft = draft
+      @mailbox_path = mailbox_path
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] sequences Value to be assigned
-    def sequences=(sequences)
-      if sequences.nil?
-        fail ArgumentError, 'sequences cannot be nil'
+    # @param [Object] uid_validity Value to be assigned
+    def uid_validity=(uid_validity)
+      if uid_validity.nil?
+        fail ArgumentError, 'uid_validity cannot be nil'
       end
 
-      if sequences.length > 0
-        fail ArgumentError, 'invalid value for "sequences", number of items must be less than or equal to 0.'
-      end
-
-      if sequences.length < 0
-        fail ArgumentError, 'invalid value for "sequences", number of items must be greater than or equal to 0.'
-      end
-
-      @sequences = sequences
+      @uid_validity = uid_validity
     end
 
     # Checks equality by comparing each attribute.
@@ -175,9 +155,9 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          campaign == o.campaign &&
-          draft == o.draft &&
-          sequences == o.sequences
+          last_uid == o.last_uid &&
+          mailbox_path == o.mailbox_path &&
+          uid_validity == o.uid_validity
     end
 
     # @see the `==` method
@@ -189,7 +169,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [campaign, draft, sequences].hash
+      [last_uid, mailbox_path, uid_validity].hash
     end
 
     # Builds the object from hash

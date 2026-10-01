@@ -59,7 +59,7 @@ module Reacon
         :'contact_id' => :'String',
         :'id' => :'String',
         :'occurred_at' => :'Time',
-        :'payload' => :'Object',
+        :'payload' => :'Hash<String, Object>',
         :'tenant_id' => :'String',
         :'type' => :'String'
       }
@@ -110,7 +110,9 @@ module Reacon
       end
 
       if attributes.key?(:'payload')
-        self.payload = attributes[:'payload']
+        if (value = attributes[:'payload']).is_a?(Hash)
+          self.payload = value
+        end
       else
         self.payload = nil
       end

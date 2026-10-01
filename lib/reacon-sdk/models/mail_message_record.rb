@@ -133,7 +133,7 @@ module Reacon
         :'lease_expires_at' => :'Time',
         :'lease_owner' => :'String',
         :'mailbox_id' => :'String',
-        :'metadata' => :'Object',
+        :'metadata' => :'Hash<String, String>',
         :'next_attempt_at' => :'Time',
         :'parent_message_id' => :'String',
         :'policy' => :'MailMessagePolicy',
@@ -242,7 +242,9 @@ module Reacon
       end
 
       if attributes.key?(:'metadata')
-        self.metadata = attributes[:'metadata']
+        if (value = attributes[:'metadata']).is_a?(Hash)
+          self.metadata = value
+        end
       else
         self.metadata = nil
       end

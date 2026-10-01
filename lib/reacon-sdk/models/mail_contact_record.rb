@@ -56,7 +56,7 @@ module Reacon
     def self.openapi_types
       {
         :'created_at' => :'Time',
-        :'custom_fields' => :'Object',
+        :'custom_fields' => :'Hash<String, String>',
         :'email' => :'String',
         :'id' => :'String',
         :'name' => :'String',
@@ -94,7 +94,9 @@ module Reacon
       end
 
       if attributes.key?(:'custom_fields')
-        self.custom_fields = attributes[:'custom_fields']
+        if (value = attributes[:'custom_fields']).is_a?(Hash)
+          self.custom_fields = value
+        end
       else
         self.custom_fields = nil
       end
