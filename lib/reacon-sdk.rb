@@ -24,6 +24,7 @@ require 'reacon-sdk/models/airtable_mapping_options_response_options_bases_inner
 require 'reacon-sdk/models/airtable_mapping_options_response_options_tables_inner'
 require 'reacon-sdk/models/airtable_mapping_options_response_options_tables_inner_fields_inner'
 require 'reacon-sdk/models/api_key_identity'
+require 'reacon-sdk/models/api_validation_issue'
 require 'reacon-sdk/models/automation_hook_created'
 require 'reacon-sdk/models/batch_verification_error'
 require 'reacon-sdk/models/batch_verification_item'

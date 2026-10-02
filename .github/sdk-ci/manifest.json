@@ -1,11 +1,11 @@
 {
   "formatVersion": 1,
   "family": "ruby",
-  "packageVersion": "1.0.0.beta.1",
-  "canonicalVersion": "1.0.0-beta.1",
+  "packageVersion": "2.0.0.beta.1",
+  "canonicalVersion": "2.0.0-beta.1",
   "image": "ruby@sha256:dba270af6994f64e45ee3dd2b85225a2a0d01f29c04508c7a3c7c8dbf59d2a85",
-  "contractSha256": "a88d2c1e48bd07cf9f136f25f20604251ae1fb88d01fb47da8c3325dd597d18f",
-  "recordingIndexSha256": "6710a54317760198dfe922ba6a944fc923173f7d8041296be696560013ef9aa4",
+  "contractSha256": "2aaffb580e76767ebfd104e2cb9ac5a335c06f717e365b322ff1ea5bec35fa21",
+  "recordingIndexSha256": "7160b43fc04e70b73c4bfcd8fc04d22186e5f3148ba20ca34b7fcc4ea9d1cab5",
   "recordedScenarios": 241,
   "files": {
     "cases.json": "dc6e30f62be328bcc8965d1b9812d844699c5ccfcd0d1e35e1eabc4787b47411",
