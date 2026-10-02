@@ -45,9 +45,13 @@ end
   begin; collect.call(scenario); raise "Missing protocol error: #{scenario}"; rescue Reacon::StreamProtocolError; end
 end
 begin; collect.call('disconnect'); raise 'Missing transport error'; rescue Reacon::StreamTransportError; end
-%w[idle total headers].each do |phase|
+# Exercise one deadline at a time. TLS/proxy setup counts toward total time;
+# 80ms idle versus 200ms total allowed setup jitter to change the winning phase.
+{ 'idle' => { idle_timeout: 0.3, total_timeout: 5 },
+  'total' => { idle_timeout: 5, total_timeout: 0.5 },
+  'headers' => { idle_timeout: 0.3, total_timeout: 5 } }.each do |phase, timeouts|
   begin
-    collect.call(phase, idle_timeout: 0.08, total_timeout: 0.2); raise 'Missing timeout'
+    collect.call(phase, **timeouts); raise 'Missing timeout'
   rescue Reacon::StreamTimeoutError => error
     check(error.phase == phase, 'timeout phase') unless phase == 'headers'
   end

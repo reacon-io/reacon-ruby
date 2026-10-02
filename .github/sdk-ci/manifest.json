@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "family": "ruby",
-  "packageVersion": "2.0.1.beta.1",
-  "canonicalVersion": "2.0.1-beta.1",
+  "packageVersion": "2.0.2.beta.1",
+  "canonicalVersion": "2.0.2-beta.1",
   "image": "ruby@sha256:dba270af6994f64e45ee3dd2b85225a2a0d01f29c04508c7a3c7c8dbf59d2a85",
   "contractSha256": "2aaffb580e76767ebfd104e2cb9ac5a335c06f717e365b322ff1ea5bec35fa21",
   "recordingIndexSha256": "7160b43fc04e70b73c4bfcd8fc04d22186e5f3148ba20ca34b7fcc4ea9d1cab5",
@@ -65,7 +65,7 @@
     "recordings/rust.rs": "7ed9f791bec26151d4b54c714186f29e92d8f8bdad83a82e856b422a920b041d",
     "recordings/server.mjs": "b5eed8ed5db29c163e9367da2ea02475ad03416ae14d20afc2cddedc0113cf68",
     "recordings/typescript.cjs": "4fdaf2402ba60bb9f710d590e959ad0b6f89b02fa8d59f92723bbb4d52ddedcf",
-    "streams/stream-ruby.rb": "e2ff8963200ea48d77cd291141737769e2495b44f109cf9c637bc6d101cd8948"
+    "streams/stream-ruby.rb": "c3ebdc3c15c9cac6b720729158f1f3620bda32c1ea0cade8513c803205eda08b"
   },
   "evidence": "reviewed-response-package-consumers-and-synthetic-streaming",
   "streamingIsolation": "retained-packages-without-source",
