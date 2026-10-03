@@ -366,6 +366,39 @@ function releasePhase(release) {
   if (packages.every((pkg) => pkg.mode === "unchanged" || pkg.testEvidenceSha256)) return "tested";
   return "prepared";
 }
+function validatePackagePreviewState(preview) {
+  keys(preview, [
+    "sourceRevision",
+    "contractSha256",
+    "generationSha256",
+    "sourceSha256",
+    "artifactManifestSha256",
+    "testEvidenceSha256",
+    "candidateSha256",
+    "approvalSha256",
+    "evidenceSha256",
+    "expiresAt"
+  ]);
+  if (!/^[a-f0-9]{40}$/.test(preview.sourceRevision ?? "")) throw Error("Invalid preview source");
+  for (const name of [
+    "contractSha256",
+    "generationSha256",
+    "sourceSha256",
+    "artifactManifestSha256",
+    "testEvidenceSha256",
+    "candidateSha256",
+    "approvalSha256",
+    "evidenceSha256"
+  ]) hash2(preview[name]);
+  instant2(preview.expiresAt);
+}
+function publicationAuthorized(release, family2, now, remainingMilliseconds = 0) {
+  const time = typeof now === "number" ? now : instant2(now);
+  if (!release || release.superseded || !Number.isFinite(time) || !Number.isSafeInteger(remainingMilliseconds) || remainingMilliseconds < 0) return false;
+  if (Date.parse(release.compatibility?.expiresAt) > time + remainingMilliseconds) return true;
+  const pkg = release.packages?.[family2], proof = pkg?.preview;
+  return Boolean(release.availability === "private" && pkg?.mode === "changed" && proof && parseReleaseVersion(pkg.canonicalVersion).prerelease && proof.sourceRevision === release.sourceRevision && proof.contractSha256 === release.contractSha256 && proof.generationSha256 === release.generationSha256 && proof.sourceSha256 === pkg.sourceSha256 && proof.artifactManifestSha256 === pkg.artifactManifestSha256 && proof.testEvidenceSha256 === pkg.testEvidenceSha256 && Date.parse(proof.expiresAt) > time + remainingMilliseconds);
+}
 function validateReleaseState(state) {
   keys(state, ["formatVersion", "sequence", "activeReleaseId", "docsReleaseId", "baselines", "versionOwners", "releases"]);
   if (state.formatVersion !== 1 || !Number.isSafeInteger(state.sequence) || state.sequence < 0 || !state.baselines || !state.versionOwners || !state.releases) throw new Error("Invalid release state");
@@ -387,7 +420,7 @@ function validateReleaseState(state) {
     for (const event of release.events) {
       keys(event, ["sequence", "action", "at"]);
       const time = instant2(event.at);
-      if (!Number.isSafeInteger(event.sequence) || event.sequence <= lastSequence || event.sequence > state.sequence || events.has(event.sequence) || time < lastTime || !["versions_reserved", "candidate_tested", "compatibility_verified", "registry_observed", "publication_started", "previous_attempt_stopped", "public_install_verified", "docs_promoted", "release_superseded", "central_deployment_updated", "central_publication_resumed"].includes(event.action)) throw new Error("Invalid release event history");
+      if (!Number.isSafeInteger(event.sequence) || event.sequence <= lastSequence || event.sequence > state.sequence || events.has(event.sequence) || time < lastTime || !["versions_reserved", "candidate_tested", "compatibility_verified", "package_preview_authorized", "registry_observed", "publication_started", "previous_attempt_stopped", "public_install_verified", "docs_promoted", "release_superseded", "central_deployment_updated", "central_publication_resumed"].includes(event.action)) throw new Error("Invalid release event history");
       events.add(event.sequence);
       lastSequence = event.sequence;
       lastTime = time;
@@ -399,12 +432,17 @@ function validateReleaseState(state) {
       if (!["deployment", "sdk-only"].includes(release.compatibility.trigger)) throw new Error("Invalid compatibility trigger");
     }
     for (const [family2, pkg] of Object.entries(release.packages)) {
-      keys(pkg, ["mode", "canonicalVersion", "packageVersion", "previousVersion", "impact", "migrationDocumentSha256", "artifactManifestSha256", "sourceSha256", "testEvidenceSha256", "units", "installEvidenceSha256", "releaseId"]);
+      keys(pkg, ["mode", "canonicalVersion", "packageVersion", "previousVersion", "impact", "migrationDocumentSha256", "artifactManifestSha256", "sourceSha256", "testEvidenceSha256", "units", "installEvidenceSha256", "releaseId", "preview"]);
       if (!["changed", "unchanged"].includes(pkg.mode)) throw new Error("Invalid SDK package mode");
       const rendered = renderReleaseVersion(family2, pkg.canonicalVersion, { availability: release.availability, packageName: family2 === "go" ? "github.com/reacon-io/reacon-go" : void 0 });
       if (pkg.packageVersion !== rendered.packageVersion) throw new Error("Invalid native package version");
       if (pkg.mode === "changed" && state.versionOwners[`${family2}@${pkg.canonicalVersion}`] !== releaseId2) throw new Error("SDK reservation ownership mismatch");
       if (Boolean(pkg.units) !== Boolean(pkg.testEvidenceSha256)) throw new Error("Candidate test evidence and units must be bound together");
+      if (pkg.preview) {
+        validatePackagePreviewState(pkg.preview);
+        if (!parseReleaseVersion(pkg.canonicalVersion).prerelease || !pkg.units || pkg.preview.sourceSha256 !== pkg.sourceSha256 || pkg.preview.artifactManifestSha256 !== pkg.artifactManifestSha256 || pkg.preview.testEvidenceSha256 !== pkg.testEvidenceSha256 || pkg.mode === "changed" && (release.availability !== "private" || pkg.preview.sourceRevision !== release.sourceRevision || pkg.preview.contractSha256 !== release.contractSha256 || pkg.preview.generationSha256 !== release.generationSha256))
+          throw Error("Preview state differs from its qualified package");
+      }
       if (pkg.units) {
         hash2(pkg.artifactManifestSha256);
         hash2(pkg.sourceSha256);
@@ -833,7 +871,7 @@ function rebaseFamilyEvent(base, proposed, current) {
   const without = (object, keys2) => Object.fromEntries(Object.entries(object).filter(([key2]) => !keys2.includes(key2)));
   const event = next.events.at(-1), noop = equal(base, proposed);
   const compatibilityEvent = !noop && event?.action === "compatibility_verified";
-  const independentOfCompatibility = !noop && ["candidate_tested", "registry_observed", "public_install_verified"].includes(event?.action);
+  const independentOfCompatibility = !noop && ["candidate_tested", "package_preview_authorized", "registry_observed", "public_install_verified"].includes(event?.action);
   const ignoreCompatibility = compatibilityEvent || independentOfCompatibility;
   if (!noop && proposed.sequence !== base.sequence + 1) reject();
   for (const state of [proposed, current]) {
@@ -850,8 +888,8 @@ function rebaseFamilyEvent(base, proposed, current) {
     for (const family3 of FAMILIES2) {
       const pkg = release.packages[family3];
       if (pkg.testEvidenceSha256 && !equal(
-        without(pkg, ["units", "installEvidenceSha256"]),
-        without(live.packages[family3], ["units", "installEvidenceSha256"])
+        without(pkg, ["units", "installEvidenceSha256", "preview"]),
+        without(live.packages[family3], ["units", "installEvidenceSha256", "preview"])
       )) reject();
     }
     const merged2 = structuredClone(current);
@@ -867,6 +905,7 @@ function rebaseFamilyEvent(base, proposed, current) {
   if (!equal(next.compatibility, release.compatibility)) reject();
   if (![
     "candidate_tested",
+    "package_preview_authorized",
     "registry_observed",
     "publication_started",
     "previous_attempt_stopped",
@@ -955,8 +994,11 @@ async function githubReleaseStateStore({
   now = Date.now,
   runGit = defaultRunGit,
   waitImpl = delay2,
-  commitLockDirectory = process.env.REACON_BUILD_JOB_DIRECTORY
+  commitLockDirectory = process.env.REACON_BUILD_JOB_DIRECTORY,
+  leaseReuseMilliseconds = 6e4
 }) {
+  if (!Number.isSafeInteger(leaseReuseMilliseconds) || leaseReuseMilliseconds < 0 || leaseReuseMilliseconds > 6e4)
+    throw Error("State credential reuse must be between zero and 60000 milliseconds");
   if (!["read", "write"].includes(access)) throw new Error("State access must be read or write");
   const getCredentials = githubReleaseStateCredentials({ inventory, packages, clientId, privateKey, fetchImpl, now, access });
   const parent = resolve3(directory2);
@@ -968,18 +1010,39 @@ async function githubReleaseStateStore({
   const inOrder = serialQueue();
   const snapshots = /* @__PURE__ */ new Map();
   let pendingRead;
-  const transaction = (operation) => inOrder(async () => {
+  let reusableLease, reuseUntil = 0, expiryTimer;
+  const revokeLease = async () => {
+    clearTimeout(expiryTimer);
+    expiryTimer = void 0;
+    if (!reusableLease) return;
+    try {
+      await reusableLease.revoke();
+      reusableLease = void 0;
+      reuseUntil = 0;
+    } catch {
+      credentialCleanupFailed = true;
+      throw Error("GitHub state token revocation failed; stop and reconcile");
+    }
+  };
+  const transaction = (operation, retainReadLease = false) => inOrder(async () => {
     if (closed) throw new Error("GitHub state store is closed");
     if (credentialCleanupFailed) throw new Error("GitHub state token revocation failed; stop and reconcile");
-    const context = { lease: null };
+    if (reusableLease && now() >= reuseUntil) await revokeLease();
+    const context = { lease: reusableLease };
+    let passed = false;
     try {
-      return await transactions.run(context, operation);
+      const result = await transactions.run(context, operation);
+      passed = true;
+      return result;
     } finally {
-      if (context.lease) try {
-        await context.lease.revoke();
-      } catch {
-        credentialCleanupFailed = true;
-        throw new Error("GitHub state token revocation failed; stop and reconcile");
+      if (!passed || !retainReadLease || now() >= reuseUntil) await revokeLease();
+      else if (reusableLease && !expiryTimer) {
+        expiryTimer = setTimeout(() => {
+          expiryTimer = void 0;
+          void inOrder(revokeLease).catch(() => {
+          });
+        }, Math.max(1, reuseUntil - now()));
+        expiryTimer.unref();
       }
     }
   });
@@ -1016,7 +1079,11 @@ async function githubReleaseStateStore({
     }
     const context = transactions.getStore();
     if (!context) throw new Error("GitHub state transport requires a scoped transaction");
-    context.lease ??= await getCredentials({ repository: RELEASE_STATE_REPOSITORY });
+    if (!context.lease) {
+      context.lease = await getCredentials({ repository: RELEASE_STATE_REPOSITORY });
+      reusableLease = context.lease;
+      reuseUntil = Math.min(now() + leaseReuseMilliseconds, context.lease.expiresAt - 3e4);
+    }
     const lease = context.lease;
     for (let attempt = 0; ; attempt++) {
       try {
@@ -1048,7 +1115,7 @@ async function githubReleaseStateStore({
       read() {
         if (closed) return Promise.reject(new Error("GitHub state store is closed"));
         if (!pendingRead) {
-          const operation = transaction(read).finally(() => {
+          const operation = transaction(read, true).finally(() => {
             if (pendingRead === operation) pendingRead = void 0;
           });
           pendingRead = operation;
@@ -1074,8 +1141,15 @@ async function githubReleaseStateStore({
       remote: REMOTE,
       access,
       async close() {
-        closed = true;
-        await rm2(cache, { recursive: true, force: true });
+        return inOrder(async () => {
+          if (closed) return;
+          closed = true;
+          try {
+            await revokeLease();
+          } finally {
+            await rm2(cache, { recursive: true, force: true });
+          }
+        });
       }
     };
   } catch (error) {
@@ -1729,8 +1803,8 @@ async function nugetRegistry({
     async function assertCurrentIntent() {
       const { state } = await store2.read(), release = state.releases[subject.releaseId], pkg = release?.packages.csharp;
       const unit = pkg?.units.nuget, attempt = unit?.attempts.at(-1);
-      const expiry = Date.parse(release?.compatibility?.expiresAt), observed = Date.parse(now());
-      if (state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== manifest.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(expiry) || !Number.isFinite(observed) || expiry <= observed) throw new Error("No current durable NuGet publication intent");
+      const observed = Date.parse(now());
+      if (state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== manifest.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(observed) || !publicationAuthorized(release, "csharp", observed)) throw new Error("No current durable NuGet publication intent");
     }
     await assertCurrentIntent();
     const bytes = Buffer.from(await readArtifact(file.sha256));
@@ -2543,8 +2617,8 @@ function artifactFileRegistry({
     async function assertCurrentIntent() {
       const current = await store2.read(), release = current.state.releases[subject.releaseId];
       const pkg = release?.packages[subject.family], unit = pkg?.units?.[subject.unit], attempt = unit?.attempts.at(-1);
-      const expires = Date.parse(release?.compatibility?.expiresAt), observedAt = Date.parse(now());
-      if (current.state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== subject.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || Object.values(release.packages).some((candidate) => Object.values(candidate.units ?? {}).some((item) => item.state === "collision")) || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(expires) || !Number.isFinite(observedAt) || expires <= observedAt) throw new Error("No current durable publication intent");
+      const observedAt = Date.parse(now());
+      if (current.state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== subject.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || Object.values(release.packages).some((candidate) => Object.values(candidate.units ?? {}).some((item) => item.state === "collision")) || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(observedAt) || !publicationAuthorized(release, subject.family, observedAt)) throw new Error("No current durable publication intent");
     }
     await assertCurrentIntent();
     const bytes = Buffer.from(await readArtifact(identity2.sha256));
@@ -2577,6 +2651,7 @@ async function runFilePublicationWorker({
   }
   const started = Date.parse(now());
   if (!Number.isFinite(started)) throw new Error("Valid publication clock required");
+  const timings = { startedAt: new Date(started).toISOString() };
   let snapshot, release, pkg, unit;
   for (; ; ) {
     snapshot = await store2.read();
@@ -2584,7 +2659,7 @@ async function runFilePublicationWorker({
     release = snapshot.state.releases[releaseId2];
     pkg = release?.packages[family2];
     unit = pkg?.units?.[unitName];
-    if (snapshot.state.activeReleaseId !== releaseId2 || !release || release.superseded || releasePhase(release) === "collision" || !pkg?.testEvidenceSha256 || !unit || !release.compatibility || Date.parse(release.compatibility.expiresAt) <= Date.parse(now())) {
+    if (snapshot.state.activeReleaseId !== releaseId2 || !release || release.superseded || releasePhase(release) === "collision" || !pkg?.testEvidenceSha256 || !unit || !publicationAuthorized(release, family2, now())) {
       throw new Error("Coordinator has not qualified an active, compatible SDK candidate");
     }
     const attempt = unit.attempts.at(-1);
@@ -2596,16 +2671,19 @@ async function runFilePublicationWorker({
     if (Date.parse(now()) - started >= waitForIntentMs) throw new Error("No durable intent arrived for this worker; nothing uploaded");
     await wait(5e3);
   }
+  timings.intentReadyAt = now();
   let loaded;
   try {
     loaded = await loadPackage();
   } catch {
+    timings.completedAt = now();
     return {
       formatVersion: 1,
       kind: "sdk-file-publication-worker",
       family: family2,
       unit: unitName,
-      observedAt: now(),
+      observedAt: timings.completedAt,
+      timings,
       releaseId: releaseId2,
       attemptId,
       workerId: identity2.workerId,
@@ -2624,6 +2702,7 @@ async function runFilePublicationWorker({
       publicInstallVerified: false
     };
   }
+  timings.packageLoadedAt = now();
   const manifest = {
     formatVersion: 1,
     kind: "sdk-package-artifacts",
@@ -2662,14 +2741,22 @@ async function runFilePublicationWorker({
       return loaded.bytes;
     }
   });
-  const before = await registry.inspect(subject);
+  const observations = [];
+  const inspect = async () => {
+    const startedAt = now(), observation = await registry.inspect(subject);
+    observations.push({ startedAt, completedAt: now(), ...observation });
+    return observation;
+  };
+  const before = await inspect();
   let uploadAttempted = false, uploadReturned = false, uploadFailure = null;
   if (before.status === "found" && before.identitySha256 !== expected.identitySha256) throw new Error("Registry version collision; nothing uploaded");
   if (before.status === "absent" && unit.state === "publishing") {
     uploadAttempted = true;
+    timings.uploadStartedAt = now();
     try {
       await registry.publish(subject);
       uploadReturned = true;
+      timings.uploadReturnedAt = now();
     } catch (error) {
       const known = [
         "Git state command failed",
@@ -2696,19 +2783,24 @@ async function runFilePublicationWorker({
       uploadFailure = error.publicationDiagnostic ?? { stage: "upload", reason: known.includes(error.message) || recognizedStatus ? error.message : "Unrecognized upload error; details suppressed" };
     }
   }
-  let after = uploadAttempted ? await registry.inspect(subject) : before;
+  if (uploadAttempted) timings.uploadFinishedAt = now();
+  let after = uploadAttempted ? await inspect() : before;
   let propagationChecks = 0;
-  while (uploadAttempted && after.status !== "found" && propagationChecks < 12) {
+  while (uploadAttempted && after.status !== "found" && propagationChecks < 12 && !(family2 === "typescript" && uploadReturned && after.status === "absent")) {
     await wait(5e3);
-    after = await registry.inspect(subject);
+    after = await inspect();
     propagationChecks++;
   }
+  timings.completedAt = now();
   return {
     formatVersion: 1,
     kind: "sdk-file-publication-worker",
     family: family2,
     unit: unitName,
-    observedAt: now(),
+    observedAt: timings.completedAt,
+    timings,
+    observations,
+    awaitingRegistry: uploadReturned && uploadFailure === null && after.status === "absent",
     releaseId: releaseId2,
     attemptId,
     workerId: identity2.workerId,
