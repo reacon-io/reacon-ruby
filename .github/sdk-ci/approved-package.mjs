@@ -39,6 +39,12 @@ export async function unpackTransfer({bytes, sha256, expected, directory}) {
   for (const [name, bytes] of Object.entries(files)) await writeFile(join(directory, 'artifacts', name), bytes, {flag:'wx',mode:0o400});
   const manifest = {formatVersion:1, kind:'sdk-approved-package-input', ...Object.fromEntries(identityKeys.map(key=>[key,transfer[key]])),
     transferSha256:sha256, files:Object.fromEntries(Object.entries(transfer.files).map(([name,file])=>[name,{sha256:file.sha256,size:file.size}]))};
+  if (transfer.privateVerification !== undefined) {
+    const proof=Buffer.from(JSON.stringify(transfer.privateVerification)+'\n');
+    if(proof.length>48*1024**2)throw Error('Approved private verification exceeds limit');
+    manifest.privateVerificationSha256=hash(proof);
+    await writeFile(join(directory,'private-verification.json'),proof,{flag:'wx',mode:0o400});
+  }
   await writeFile(join(directory, 'manifest.json'), JSON.stringify(manifest)+'\n', {flag:'wx',mode:0o400});
   return manifest;
 }
