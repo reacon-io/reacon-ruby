@@ -1,6 +1,51 @@
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+
+// scripts/public-api/lib/generator.mjs
+import { createHash as createHash2 } from "node:crypto";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+var root, sha256;
+var init_generator = __esm({
+  "scripts/public-api/lib/generator.mjs"() {
+    root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+    sha256 = (bytes) => createHash2("sha256").update(bytes).digest("hex");
+  }
+});
+
+// scripts/public-api/lib/build-concurrency.mjs
+function serialQueue() {
+  let tail = Promise.resolve();
+  return (operation) => {
+    const next = tail.then(operation);
+    tail = next.catch(() => {
+    });
+    return next;
+  };
+}
+var GiB, FAMILY_RESOURCES;
+var init_build_concurrency = __esm({
+  "scripts/public-api/lib/build-concurrency.mjs"() {
+    GiB = 1024 ** 3;
+    FAMILY_RESOURCES = Object.freeze({
+      typescript: { cpus: 2, memoryBytes: 2 * GiB, scratchBytes: 2 * GiB },
+      python: { cpus: 1, memoryBytes: GiB, scratchBytes: GiB },
+      go: { cpus: 2, memoryBytes: 2 * GiB, scratchBytes: 2 * GiB },
+      rust: { cpus: 3, memoryBytes: 3 * GiB, scratchBytes: 3 * GiB },
+      php: { cpus: 1, memoryBytes: GiB, scratchBytes: GiB },
+      ruby: { cpus: 1, memoryBytes: GiB, scratchBytes: GiB },
+      java: { cpus: 2, memoryBytes: 2 * GiB, scratchBytes: 2 * GiB },
+      kotlin: { cpus: 3, memoryBytes: 3 * GiB, scratchBytes: 3 * GiB },
+      csharp: { cpus: 2, memoryBytes: 2 * GiB, scratchBytes: 2 * GiB }
+    });
+  }
+});
+
 // sdk-generation/ci/publisher/publish-file.mjs
 import { readFile as readFile3, writeFile as writeFile3, mkdir as mkdir3, mkdtemp as mkdtemp4, rm as rm5 } from "node:fs/promises";
-import { join as join5, dirname as dirname2, resolve as resolve5 } from "node:path";
+import { join as join6, dirname as dirname2, resolve as resolve5 } from "node:path";
 import { tmpdir as tmpdir3 } from "node:os";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 import { execFile } from "node:child_process";
@@ -143,8 +188,8 @@ async function githubPublisherIdentity({ configuration: configuration2, environm
 }
 
 // scripts/public-api/lib/github-release-state.mjs
-import { mkdir as mkdir2, mkdtemp, realpath as realpath2, rm as rm2 } from "node:fs/promises";
-import { join as join2, resolve as resolve3 } from "node:path";
+import { mkdir as mkdir2, mkdtemp, realpath as realpath3, rm as rm2 } from "node:fs/promises";
+import { join as join3, resolve as resolve3 } from "node:path";
 
 // scripts/public-api/lib/git-release-state.mjs
 import { mkdir, lstat, realpath, rm } from "node:fs/promises";
@@ -158,12 +203,8 @@ function canonical(value) {
   return value;
 }
 
-// scripts/public-api/lib/generator.mjs
-import { createHash as createHash2 } from "node:crypto";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-var root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-var sha256 = (bytes) => createHash2("sha256").update(bytes).digest("hex");
+// scripts/public-api/lib/git-release-state.mjs
+init_generator();
 
 // scripts/public-api/lib/release-versions.mjs
 var PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(alpha|beta|rc)\.([1-9]\d*))?$/;
@@ -541,6 +582,11 @@ async function gitReleaseStateStore({ directory: directory2, remote, runGit = de
           throw new UncertainReleaseStateCommit(nextCommit);
         }
         if (observed2.commit === nextCommit) return observed2;
+        try {
+          await git(["merge-base", "--is-ancestor", nextCommit, observed2.commit]);
+          return observed2;
+        } catch {
+        }
         if (observed2.commit !== expectedCommit) throw new ConcurrentReleaseState();
         if (attempt === 0 && ["repository-unavailable", "transport", "timeout"].includes(error.gitFailureCategory)) continue;
         const category = ["repository-unavailable", "transport", "timeout", "authentication", "dns", "tls", "other"].includes(error.gitFailureCategory) ? error.gitFailureCategory : "unknown";
@@ -553,7 +599,13 @@ async function gitReleaseStateStore({ directory: directory2, remote, runGit = de
     } catch {
       throw new UncertainReleaseStateCommit(nextCommit);
     }
-    if (observed.commit !== nextCommit) throw new ConcurrentReleaseState();
+    if (observed.commit !== nextCommit) {
+      try {
+        await git(["merge-base", "--is-ancestor", nextCommit, observed.commit]);
+      } catch {
+        throw new ConcurrentReleaseState();
+      }
+    }
     return observed;
   }
   return { read, commit, remote, directory: directory2 };
@@ -562,9 +614,9 @@ function classifyGitFailure(detail, timedOut = false) {
   return timedOut ? "timeout" : /authentication failed|invalid username|could not read Username|error: 401|error: 403/i.test(detail) ? "authentication" : /Could not resolve host/i.test(detail) ? "dns" : /SSL certificate|certificate verify/i.test(detail) ? "tls" : /repository not found|repository .* not found/i.test(detail) ? "repository-unavailable" : /RPC failed|HTTP\/2|remote end hung up|connection reset|Failed to connect|error: 50[0234]/i.test(detail) ? "transport" : "other";
 }
 async function defaultRunGit(args, input, env) {
-  const { spawn: spawn2 } = await import("node:child_process");
+  const { spawn: spawn3 } = await import("node:child_process");
   return await new Promise((resolveRun, reject) => {
-    const child = spawn2("/usr/bin/git", args, { env, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn3("/usr/bin/git", args, { env, stdio: ["pipe", "pipe", "pipe"] });
     let timedOut = false;
     const timeout = setTimeout(() => {
       timedOut = true;
@@ -763,8 +815,133 @@ function repositoryCredentials({ inventory, packages, clientId, privateKey, fetc
 }
 
 // scripts/public-api/lib/github-release-state.mjs
+init_build_concurrency();
 import { setTimeout as delay2 } from "node:timers/promises";
 import { AsyncLocalStorage } from "node:async_hooks";
+
+// scripts/public-api/lib/disjoint-release-state.mjs
+import { isDeepStrictEqual as equal } from "node:util";
+function rebaseFamilyEvent(base, proposed, current) {
+  [base, proposed, current].forEach(validateReleaseState);
+  const reject = () => {
+    throw new ConcurrentReleaseState();
+  };
+  const id4 = base.activeReleaseId;
+  if (!id4 || proposed.activeReleaseId !== id4 || current.activeReleaseId !== id4 || current.sequence < base.sequence) reject();
+  const release = base.releases[id4], next = proposed.releases[id4], live = current.releases[id4];
+  if (releasePhase(live) === "collision") reject();
+  const without = (object, keys2) => Object.fromEntries(Object.entries(object).filter(([key2]) => !keys2.includes(key2)));
+  const event = next.events.at(-1), noop = equal(base, proposed);
+  const compatibilityEvent = !noop && event?.action === "compatibility_verified";
+  const independentOfCompatibility = !noop && ["candidate_tested", "registry_observed", "public_install_verified"].includes(event?.action);
+  const ignoreCompatibility = compatibilityEvent || independentOfCompatibility;
+  if (!noop && proposed.sequence !== base.sequence + 1) reject();
+  for (const state of [proposed, current]) {
+    if (!equal(without(state, ["sequence", "releases", "baselines"]), without(base, ["sequence", "releases", "baselines"])) || !equal(without(state.releases, [id4]), without(base.releases, [id4])) || !equal(
+      without(state.releases[id4], ["packages", "events", ...ignoreCompatibility ? ["compatibility"] : []]),
+      without(release, ["packages", "events", ...ignoreCompatibility ? ["compatibility"] : []])
+    )) reject();
+  }
+  if (!equal(live.events.slice(0, release.events.length), release.events)) reject();
+  if (noop) return structuredClone(current);
+  if (next.events.length !== release.events.length + 1 || !equal(next.events.slice(0, -1), release.events) || !equal(live.events.slice(0, release.events.length), release.events)) reject();
+  if (compatibilityEvent) {
+    if (!equal(next.packages, release.packages) || !equal(proposed.baselines, base.baselines) || !equal(live.compatibility, release.compatibility)) reject();
+    for (const family3 of FAMILIES2) {
+      const pkg = release.packages[family3];
+      if (pkg.testEvidenceSha256 && !equal(
+        without(pkg, ["units", "installEvidenceSha256"]),
+        without(live.packages[family3], ["units", "installEvidenceSha256"])
+      )) reject();
+    }
+    const merged2 = structuredClone(current);
+    merged2.sequence++;
+    merged2.releases[id4].compatibility = structuredClone(next.compatibility);
+    merged2.releases[id4].events.push({
+      ...event,
+      sequence: merged2.sequence,
+      at: event.at > live.events.at(-1).at ? event.at : live.events.at(-1).at
+    });
+    return validateReleaseState(merged2);
+  }
+  if (!equal(next.compatibility, release.compatibility)) reject();
+  if (![
+    "candidate_tested",
+    "registry_observed",
+    "publication_started",
+    "previous_attempt_stopped",
+    "public_install_verified",
+    "central_deployment_updated",
+    "central_publication_resumed"
+  ].includes(event.action)) reject();
+  const changed = FAMILIES2.filter((f) => !equal(release.packages[f], next.packages[f]) || !equal(base.baselines[f], proposed.baselines[f]));
+  if (!changed.length && event.action === "registry_observed") {
+    const merged2 = structuredClone(current);
+    merged2.sequence++;
+    merged2.releases[id4].events.push({ ...event, sequence: merged2.sequence, at: event.at > live.events.at(-1).at ? event.at : live.events.at(-1).at });
+    return validateReleaseState(merged2);
+  }
+  if (changed.length !== 1) reject();
+  const family2 = changed[0];
+  if (!equal(live.packages[family2], release.packages[family2]) || !equal(current.baselines[family2], base.baselines[family2])) reject();
+  const merged = structuredClone(current);
+  merged.releases[id4].packages[family2] = structuredClone(next.packages[family2]);
+  if (Object.hasOwn(proposed.baselines, family2)) merged.baselines[family2] = structuredClone(proposed.baselines[family2]);
+  else delete merged.baselines[family2];
+  merged.sequence++;
+  merged.releases[id4].events.push({
+    ...event,
+    sequence: merged.sequence,
+    at: event.at > live.events.at(-1).at ? event.at : live.events.at(-1).at
+  });
+  return validateReleaseState(merged);
+}
+
+// scripts/public-api/lib/ledger-commit-lock.mjs
+import { spawn } from "node:child_process";
+import { lstat as lstat2, realpath as realpath2 } from "node:fs/promises";
+import { isAbsolute, join as join2 } from "node:path";
+async function withLedgerCommitLock(operation, directory2 = process.env.REACON_BUILD_JOB_DIRECTORY, { name = "ledger-commit", timeoutSeconds = 180 } = {}) {
+  if (!/^[a-z][a-z0-9-]{0,79}$/.test(name) || !Number.isInteger(timeoutSeconds) || timeoutSeconds < 1 || timeoutSeconds > 1200)
+    throw Error("Invalid controller lock");
+  if (!directory2) return operation();
+  const stat = await lstat2(directory2);
+  if (!isAbsolute(directory2) || await realpath2(directory2) !== directory2 || !stat.isDirectory() || stat.uid !== process.getuid() || (stat.mode & 63) !== 0) throw Error("Owned private build job required for ledger lock");
+  const child = spawn(
+    "/usr/bin/flock",
+    [
+      "--exclusive",
+      "--timeout",
+      String(timeoutSeconds),
+      join2(directory2, name + ".lock"),
+      process.execPath,
+      "--input-type=module",
+      "-e",
+      'process.stdout.write("locked\\n"); process.stdin.resume(); process.stdin.on("end",()=>process.exit(0));'
+    ],
+    { stdio: ["pipe", "pipe", "ignore"], env: { PATH: "/usr/bin:/bin" } }
+  );
+  const closed = new Promise((resolve6, reject) => {
+    child.once("error", reject);
+    child.once("close", (code) => code === 0 ? resolve6() : reject(Error("Ledger commit lock failed")));
+  });
+  child.stdin.on("error", () => {
+  });
+  closed.catch(() => {
+  });
+  try {
+    await new Promise((resolve6, reject) => {
+      child.stdout.once("data", (bytes) => bytes.toString() === "locked\n" ? resolve6() : reject(Error("Unexpected ledger lock response")));
+      closed.then(() => reject(Error("Ledger lock exited before acquisition")), reject);
+    });
+    return await operation();
+  } finally {
+    child.stdin.end();
+    await closed;
+  }
+}
+
+// scripts/public-api/lib/github-release-state.mjs
 var RELEASE_STATE_REPOSITORY = "reacon-io/reacon-sdk-releases";
 var REMOTE = `https://github.com/${RELEASE_STATE_REPOSITORY}.git`;
 async function githubReleaseStateStore({
@@ -777,17 +954,21 @@ async function githubReleaseStateStore({
   fetchImpl = fetch,
   now = Date.now,
   runGit = defaultRunGit,
-  waitImpl = delay2
+  waitImpl = delay2,
+  commitLockDirectory = process.env.REACON_BUILD_JOB_DIRECTORY
 }) {
   if (!["read", "write"].includes(access)) throw new Error("State access must be read or write");
   const getCredentials = githubReleaseStateCredentials({ inventory, packages, clientId, privateKey, fetchImpl, now, access });
   const parent = resolve3(directory2);
   await mkdir2(parent, { recursive: true, mode: 448 });
-  if (await realpath2(parent) !== parent) throw new Error("State cache parent cannot use symlinks");
-  const cache = await mkdtemp(join2(parent, "github-state-"));
+  if (await realpath3(parent) !== parent) throw new Error("State cache parent cannot use symlinks");
+  const cache = await mkdtemp(join3(parent, "github-state-"));
   let closed = false, credentialCleanupFailed = false;
   const transactions = new AsyncLocalStorage();
-  const transaction = async (operation) => {
+  const inOrder = serialQueue();
+  const snapshots = /* @__PURE__ */ new Map();
+  let pendingRead;
+  const transaction = (operation) => inOrder(async () => {
     if (closed) throw new Error("GitHub state store is closed");
     if (credentialCleanupFailed) throw new Error("GitHub state token revocation failed; stop and reconcile");
     const context = { lease: null };
@@ -801,7 +982,7 @@ async function githubReleaseStateStore({
         throw new Error("GitHub state token revocation failed; stop and reconcile");
       }
     }
-  };
+  });
   const execute = async (args, input, env) => {
     if (closed) throw new Error("GitHub state store is closed");
     if (credentialCleanupFailed) throw new Error("GitHub state token revocation failed; stop and reconcile");
@@ -859,17 +1040,36 @@ async function githubReleaseStateStore({
       if (snapshot.state.sequence === 0 && snapshot.commit !== inventory.releaseStateRepository.initialCommit) {
         throw new Error("Empty release state is only valid at the recorded bootstrap commit; reconcile repository history");
       }
+      snapshots.set(snapshot.commit, structuredClone(snapshot.state));
+      if (snapshots.size > 16) snapshots.delete(snapshots.keys().next().value);
       return snapshot;
     };
     return {
-      read: () => transaction(read),
+      read() {
+        if (closed) return Promise.reject(new Error("GitHub state store is closed"));
+        if (!pendingRead) {
+          const operation = transaction(read).finally(() => {
+            if (pendingRead === operation) pendingRead = void 0;
+          });
+          pendingRead = operation;
+        }
+        return pendingRead.then((snapshot) => structuredClone(snapshot));
+      },
       async commit(request) {
         if (access !== "write") throw new Error("Read-only GitHub state store cannot commit");
-        return transaction(async () => {
+        pendingRead = void 0;
+        return transaction(() => withLedgerCommitLock(async () => {
+          const base = snapshots.get(request.expectedCommit);
           const before = await read();
-          if (before.commit !== request.expectedCommit) throw new ConcurrentReleaseState();
-          return store2.commit(request);
-        });
+          let state = request.state;
+          if (before.commit !== request.expectedCommit) {
+            if (!base) throw new ConcurrentReleaseState();
+            state = rebaseFamilyEvent(base, state, before.state);
+          }
+          const result = await store2.commit({ expectedCommit: before.commit, state });
+          snapshots.set(result.commit, structuredClone(result.state));
+          return result;
+        }, commitLockDirectory));
       },
       remote: REMOTE,
       access,
@@ -924,11 +1124,13 @@ async function downloadGithubArtifact({ repository, artifact, token, maxBytes, f
 // scripts/public-api/lib/ruby-rust-upload.mjs
 import { mkdtemp as mkdtemp2, writeFile, rm as rm3, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve as resolve4, join as join3 } from "node:path";
+import { resolve as resolve4, join as join4 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
+init_generator();
 
 // scripts/public-api/lib/native-package-upload.mjs
-import { spawn } from "node:child_process";
+import { spawn as spawn2 } from "node:child_process";
+init_generator();
 var NPM_METADATA = String.raw`
 const {createRequire}=require('node:module');
 const pacote=createRequire(process.argv[1])('pacote');
@@ -955,7 +1157,7 @@ print(json.dumps({'name': metadata['Name'], 'version': metadata['Version']}))
 `;
 async function runPublisherProcess({ command, args, cwd, env }) {
   return await new Promise((resolve6, reject) => {
-    const child = spawn(command, args, { cwd, env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn2(command, args, { cwd, env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
     const chunks = [];
     let size = 0, failed = false, killTimer;
     function stop() {
@@ -1029,9 +1231,9 @@ async function inspectRetainedRubyRust({
   toolchainConfiguration = resolve4(root2, "sdk-generation/config/toolchain-images.json"),
   inspectorDirectory = resolve4(root2, "scripts/public-api")
 }) {
-  const directory2 = await mkdtemp2(join3(tmpdir(), "reacon-registry-archive-"));
+  const directory2 = await mkdtemp2(join4(tmpdir(), "reacon-registry-archive-"));
   try {
-    const file = join3(directory2, identity2.filename);
+    const file = join4(directory2, identity2.filename);
     await writeFile(file, bytes, { flag: "wx", mode: 256 });
     const config = JSON.parse(await readFile(toolchainConfiguration));
     const image = config.images[family2 === "ruby" ? "ruby" : "python"].image;
@@ -1181,6 +1383,7 @@ function rubyRustUploader({
 
 // scripts/public-api/lib/nuget-registry.mjs
 import { createHash as createHash4 } from "node:crypto";
+init_generator();
 
 // sdk-generation/ci/source/package-artifacts.mjs
 var MAX_BYTES = 256 * 1024 * 1024;
@@ -1203,11 +1406,12 @@ function validateArtifactNames(family2, packageVersion, names2) {
 }
 
 // scripts/public-api/lib/package-artifacts.mjs
+init_generator();
 var MAX_BYTES2 = 256 * 1024 * 1024;
 
 // scripts/public-api/lib/nuget-native.mjs
 import { mkdtemp as mkdtemp3, readFile as readFile2, writeFile as writeFile2, rm as rm4 } from "node:fs/promises";
-import { join as join4 } from "node:path";
+import { join as join5 } from "node:path";
 import { tmpdir as tmpdir2 } from "node:os";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 var root3 = fileURLToPath3(new URL("../../../", import.meta.url));
@@ -1234,12 +1438,12 @@ async function inspectNugetArchive({
   fingerprints,
   verifySignature = false,
   runProcess = runPublisherProcess,
-  toolchainConfiguration = join4(root3, "sdk-generation/config/toolchain-images.json"),
-  inspectorPath = join4(root3, "scripts/public-api/inspect-nuget-package.py")
+  toolchainConfiguration = join5(root3, "sdk-generation/config/toolchain-images.json"),
+  inspectorPath = join5(root3, "scripts/public-api/inspect-nuget-package.py")
 }) {
-  const directory2 = await mkdtemp3(join4(tmpdir2(), "reacon-nuget-inspect-"));
+  const directory2 = await mkdtemp3(join5(tmpdir2(), "reacon-nuget-inspect-"));
   try {
-    const file = join4(directory2, "package.nupkg");
+    const file = join5(directory2, "package.nupkg");
     await writeFile2(file, bytes, { flag: "wx", mode: 256 });
     const config = JSON.parse(await readFile2(toolchainConfiguration));
     const image = config.images[verifySignature ? "csharp" : "python"].image;
@@ -1275,10 +1479,10 @@ async function inspectNugetArchive({
       if (!Array.isArray(fingerprints) || !fingerprints.length || fingerprints.length > 20 || fingerprints.some((value) => !digest(value))) throw new Error("Explicit NuGet repository certificate policy is required");
       const certificates = fingerprints.map((value) => `<certificate fingerprint="${value}" hashAlgorithm="SHA256" allowUntrustedRoot="false" />`).join("");
       const policy = `<configuration><packageSources><clear /></packageSources><config><add key="signatureValidationMode" value="require" /></config><trustedSigners><clear /><repository name="nuget.org" serviceIndex="${serviceIndex}">${certificates}</repository></trustedSigners></configuration>`;
-      await writeFile2(join4(directory2, "NuGet.Config"), policy, { flag: "wx", mode: 256 });
+      await writeFile2(join5(directory2, "NuGet.Config"), policy, { flag: "wx", mode: 256 });
       args.push(
         "--mount",
-        `type=bind,source=${join4(directory2, "NuGet.Config")},target=/input/NuGet.Config,readonly`,
+        `type=bind,source=${join5(directory2, "NuGet.Config")},target=/input/NuGet.Config,readonly`,
         image,
         "dotnet",
         "nuget",
@@ -2138,8 +2342,12 @@ function filePublicationTarget(family2) {
   };
 }
 
+// scripts/public-api/lib/file-publication-worker.mjs
+init_generator();
+
 // scripts/public-api/lib/file-registry.mjs
 import { createHash as createHash5 } from "node:crypto";
+init_generator();
 var MAX_FILE = 256 * 1024 * 1024;
 var jsonBytes3 = (value) => Buffer.from(JSON.stringify(canonical(value), null, 2) + "\n");
 var names = { typescript: "@reacon-io/sdk", python: "reacon-sdk", ruby: "reacon-sdk", rust: "reacon-sdk" };
@@ -2388,7 +2596,34 @@ async function runFilePublicationWorker({
     if (Date.parse(now()) - started >= waitForIntentMs) throw new Error("No durable intent arrived for this worker; nothing uploaded");
     await wait(5e3);
   }
-  const loaded = await loadPackage();
+  let loaded;
+  try {
+    loaded = await loadPackage();
+  } catch {
+    return {
+      formatVersion: 1,
+      kind: "sdk-file-publication-worker",
+      family: family2,
+      unit: unitName,
+      observedAt: now(),
+      releaseId: releaseId2,
+      attemptId,
+      workerId: identity2.workerId,
+      repository: identity2.repository,
+      workflowCommit: identity2.workflowCommit,
+      stateCommit: snapshot.commit,
+      artifactManifestSha256: pkg.artifactManifestSha256,
+      identitySha256: unit.identitySha256,
+      sourceRevision: release.sourceRevision,
+      contractSha256: release.contractSha256,
+      uploadAttempted: false,
+      uploadReturned: false,
+      uploadFailure: { stage: "package-load", reason: "Package retrieval or extraction failed before upload" },
+      packagePublished: false,
+      releaseStateUpdated: false,
+      publicInstallVerified: false
+    };
+  }
   const manifest = {
     formatVersion: 1,
     kind: "sdk-package-artifacts",
@@ -2498,8 +2733,9 @@ async function runFilePublicationWorker({
 }
 
 // sdk-generation/ci/publisher/publish-file.mjs
+init_generator();
 var directory = dirname2(fileURLToPath4(import.meta.url));
-var configuration = JSON.parse(await readFile3(join5(directory, "configuration.json")));
+var configuration = JSON.parse(await readFile3(join6(directory, "configuration.json")));
 var identity = await githubPublisherIdentity({ configuration, environment: process.env, tokenProvider: () => getIDToken() });
 var family = identity.family;
 if (!["ruby", "rust", "csharp"].includes(family)) throw Error("Gem, crate or NuGet publisher required");
@@ -2527,13 +2763,13 @@ if (!Number.isSafeInteger(artifactId) || artifactId <= 0 || !process.env.GITHUB_
 var key = Buffer.from(process.env.REACON_GITHUB_APP_PRIVATE_KEY ?? "");
 delete process.env.REACON_GITHUB_APP_PRIVATE_KEY;
 if (!key.length) throw Error("Company release-state reader credential missing");
-var temporary = await mkdtemp4(join5(tmpdir3(), "reacon-file-worker-"));
+var temporary = await mkdtemp4(join6(tmpdir3(), "reacon-file-worker-"));
 var store;
 try {
-  const inventory = JSON.parse(await readFile3(join5(directory, "github-bootstrap.json")));
-  const { packages } = JSON.parse(await readFile3(join5(directory, "package-identities.json")));
+  const inventory = JSON.parse(await readFile3(join6(directory, "github-bootstrap.json")));
+  const { packages } = JSON.parse(await readFile3(join6(directory, "package-identities.json")));
   store = await githubReleaseStateStore({
-    directory: join5(temporary, "state"),
+    directory: join6(temporary, "state"),
     access: "read",
     inventory,
     packages,
@@ -2547,13 +2783,13 @@ try {
     token: process.env.GITHUB_TOKEN,
     maxBytes: 128 * 1024 * 1024
   });
-  const zip = join5(temporary, "ci.zip");
+  const zip = join6(temporary, "ci.zip");
   await writeFile3(zip, archive);
-  await promisify(execFile)("python3", [join5(directory, "unpack-ci-packages.py"), zip, temporary], { timeout: 3e4 });
-  const manifest = JSON.parse(await readFile3(join5(temporary, "package-manifest.json")));
+  await promisify(execFile)("python3", [join6(directory, "unpack-ci-packages.py"), zip, temporary], { timeout: 3e4 });
+  const manifest = JSON.parse(await readFile3(join6(temporary, "package-manifest.json")));
   const ciArtifact = { id: artifact.id, archiveSha256: sha256(archive), size: archive.length, workflowRunId: artifact.workflow_run?.id };
   const requestCredential = registryOidcCredentials({ family, nugetUsername: configuration.nugetUsername, environment: process.env, tokenProvider: getIDToken });
-  const inspectNuget = (input) => inspectNugetArchive({ ...input, toolchainConfiguration: join5(directory, "toolchain-images.json"), inspectorPath: join5(directory, "inspect-nuget-package.py") });
+  const inspectNuget = (input) => inspectNugetArchive({ ...input, toolchainConfiguration: join6(directory, "toolchain-images.json"), inspectorPath: join6(directory, "inspect-nuget-package.py") });
   const getCredentials = async (input) => {
     const credential = await requestCredential(input);
     setSecret(credential.token);
@@ -2563,7 +2799,7 @@ try {
     family,
     inspectArchive: (input) => inspectRetainedRubyRust({
       ...input,
-      toolchainConfiguration: join5(directory, "toolchain-images.json"),
+      toolchainConfiguration: join6(directory, "toolchain-images.json"),
       inspectorDirectory: directory
     }),
     getCredentials: async (input) => {
@@ -2607,7 +2843,7 @@ try {
         const names2 = Object.keys(manifest.files);
         if (names2.length !== 1 || !names2[0].endsWith(suffix) || names2.some((name) => !/^[A-Za-z0-9_.-]+$/.test(name))) throw Error("Expected one retained gem or crate");
         const filename = names2.find((name) => name.endsWith(suffix));
-        return { files: manifest.files, bytes: await readFile3(join5(temporary, "artifacts", filename)), ciArtifact };
+        return { files: manifest.files, bytes: await readFile3(join6(temporary, "artifacts", filename)), ciArtifact };
       }
     });
     await writeFile3(`sdk-release-results/${unitName}.json`, JSON.stringify(report, null, 2) + "\n");
