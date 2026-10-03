@@ -72,6 +72,9 @@ try {
   if (family === 'rust') await prepareRustConsumer(work, cases, output, manifest.packageVersion);
   const env = {
     ...(process.env.REACON_BUILD_CPUS ? { CARGO_BUILD_JOBS: process.env.REACON_BUILD_CPUS, GOMAXPROCS: process.env.REACON_BUILD_CPUS, JAVA_TOOL_OPTIONS: '-Xmx768m -XX:ActiveProcessorCount=' + process.env.REACON_BUILD_CPUS } : {}),
+    // Conformance needs assertions and unoptimized behavior, not debugger data.
+    // This affects temporary consumer builds only; published crate bytes stay unchanged.
+    ...(family === 'rust' ? { CARGO_PROFILE_DEV_DEBUG: '0', CARGO_PROFILE_TEST_DEBUG: '0' } : {}),
     SDK_DIRECTORY: '/work', REACON_SDK_PACKAGE_VERSION: manifest.packageVersion,
     REACON_CASES_FILE: '/ci/cases.json', REACON_RECORDINGS_URL: recordings.url,
     REACON_TEST_URL: `${recordings.url}/${family}`, REACON_STREAM_TEST_URL: `${streams.url}/${family}`,
