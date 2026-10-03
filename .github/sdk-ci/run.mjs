@@ -13,6 +13,7 @@ import { prepareRustConsumer } from './recordings/rust-consumer.mjs';
 import { writeCiPackageManifest, readCiPackageArtifacts } from './package-artifacts.mjs';
 import { installedStreamRuntimeEvidence } from './streaming-package-evidence.mjs';
 
+const verificationStartedAt = new Date().toISOString();
 const resourceArgs = [];
 if (process.env.REACON_BUILD_CPUS || process.env.REACON_BUILD_MEMORY_BYTES) {
   const cpus = Number(process.env.REACON_BUILD_CPUS), memory = Number(process.env.REACON_BUILD_MEMORY_BYTES);
@@ -175,6 +176,8 @@ try {
     catch (error) { passed = false; failures.push(`Package retention failed: ${error.message}`); }
   }
   const report = { formatVersion: 1, kind: 'sdk-repository-source-ci', family, passed, exitCode, failures,
+    verificationRuntime: {kind:'pinned-container-conformance',platform:process.platform,arch:process.arch,fixtureNode:process.version},
+    verificationStartedAt, verificationCompletedAt:new Date().toISOString(),
     sdkRebuilt: !prebuilt, ...(prebuilt ? {prebuiltPackageTransferSha256: prebuilt.transferSha256} : {}),
     sourceRevision: process.env.REACON_SOURCE_REVISION ?? null,
     sourceSha256, ...(packageArtifacts ? { packageArtifacts } : {}),
