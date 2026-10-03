@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "family": "ruby",
-  "packageVersion": "2.0.10.beta.1",
-  "canonicalVersion": "2.0.10-beta.1",
+  "packageVersion": "2.0.11.beta.1",
+  "canonicalVersion": "2.0.11-beta.1",
   "image": "ruby@sha256:dba270af6994f64e45ee3dd2b85225a2a0d01f29c04508c7a3c7c8dbf59d2a85",
   "contractSha256": "2aaffb580e76767ebfd104e2cb9ac5a335c06f717e365b322ff1ea5bec35fa21",
   "recordingIndexSha256": "7160b43fc04e70b73c4bfcd8fc04d22186e5f3148ba20ca34b7fcc4ea9d1cab5",
