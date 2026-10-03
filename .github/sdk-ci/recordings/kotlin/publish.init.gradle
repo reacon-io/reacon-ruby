@@ -1,5 +1,11 @@
 allprojects {
     afterEvaluate {
+        // Bound the documentation worker separately from Gradle and the Kotlin
+        // compiler. Dokka's default eagerly touches a 2-GiB heap even for this
+        // single-module SDK. This applies only to the isolated package build.
+        def isolation = extensions.getByName('dokka').dokkaGeneratorIsolation.get()
+        isolation.maxHeapSize.set('768m')
+        isolation.jvmArgs.add('-XX:-AlwaysPreTouch')
         publishing.repositories { maven { name = 'Recording'; url = uri('/cache/recording-maven') } }
     }
 }

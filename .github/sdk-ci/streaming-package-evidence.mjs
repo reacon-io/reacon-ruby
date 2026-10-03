@@ -10,7 +10,7 @@ export function installedStreamRuntimeEvidence({family,packageVersion,files,proo
     const sdk = cargoMetadata?.packages?.filter(pkg => pkg.name === 'reacon-sdk');
     const root = cargoMetadata?.resolve?.nodes?.find(node => node.id === cargoMetadata.resolve.root);
     if (sdk?.length !== 1 || sdk[0].version !== packageVersion ||
-        sdk[0].manifest_path !== `/cache/stream-crate/reacon-sdk-${packageVersion}/Cargo.toml` ||
+        sdk[0].manifest_path !== `/cache/recording-crate/${files[`reacon-sdk-${packageVersion}.crate`].sha256}/reacon-sdk-${packageVersion}/Cargo.toml` ||
         !root?.deps?.some(dep => dep.name === 'reacon_sdk' && dep.pkg === sdk[0].id))
       throw new Error('Streaming Cargo dependency is not the retained crate');
     return {packageVersion, installedFromRetainedCrate:true, archiveSha256:files[`reacon-sdk-${packageVersion}.crate`]?.sha256};
