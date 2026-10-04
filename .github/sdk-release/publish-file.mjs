@@ -2478,12 +2478,14 @@ function artifactFileRegistry({
     }[manifest.family];
     if (parsed.protocol !== "https:" || !hosts.includes(parsed.hostname) || parsed.port || parsed.username || parsed.password || parsed.hash) throw new Error("Untrusted registry URL");
     let response;
+    const pypiMetadata = manifest.family === "python" && parsed.hostname === "pypi.org" && maxBytes !== MAX_FILE;
     try {
       response = await fetchImpl(url, {
         redirect: "error",
         signal: AbortSignal.timeout(3e4),
         headers: {
-          Accept: maxBytes === MAX_FILE ? "application/octet-stream" : "application/json",
+          Accept: pypiMetadata ? "application/vnd.pypi.simple.v1+json" : maxBytes === MAX_FILE ? "application/octet-stream" : "application/json",
+          ...pypiMetadata ? { "Accept-Encoding": "identity" } : {},
           "User-Agent": "Reacon-SDK-Releases/1.0 (https://github.com/reacon-io)"
         }
       });
@@ -2493,6 +2495,11 @@ function artifactFileRegistry({
     }
     const entry = { url, status: response.status };
     evidence.requests.push(entry);
+    if (pypiMetadata) {
+      entry.acceptEncoding = "identity";
+      const serial = response.headers.get("x-pypi-last-serial");
+      if (/^[0-9]{1,20}$/.test(serial ?? "")) entry.pypiLastSerial = serial;
+    }
     if (response.status !== 200) {
       await response.body?.cancel();
       return { status: response.status };
@@ -2547,7 +2554,7 @@ function artifactFileRegistry({
     }, reason);
     const url = {
       typescript: `https://registry.npmjs.org/@reacon-io%2Fsdk/${identity2.version}`,
-      python: `https://pypi.org/pypi/reacon-sdk/${identity2.version}/json`,
+      python: "https://pypi.org/simple/reacon-sdk/",
       ruby: `https://rubygems.org/api/v2/rubygems/reacon-sdk/versions/${identity2.version}.json?platform=ruby`,
       rust: `https://crates.io/api/v1/crates/reacon-sdk/${identity2.version}`
     }[manifest.family];
@@ -2568,17 +2575,23 @@ function artifactFileRegistry({
       if (downloadUrl !== `https://registry.npmjs.org/@reacon-io/sdk/-/sdk-${identity2.version}.tgz`) return unknown("unexpected-tarball-url");
       published = data.dist;
     } else if (manifest.family === "python") {
-      if (typeof data.info?.name !== "string" || data.info.name.toLowerCase().replace(/[-_.]+/g, "-") !== identity2.packageName || data.info.version !== identity2.version) return collision("package-metadata-mismatch");
-      if (!Array.isArray(data.urls)) return unknown("invalid-file-index");
+      if (typeof data.name !== "string" || data.name.toLowerCase().replace(/[-_.]+/g, "-") !== identity2.packageName) return collision("package-metadata-mismatch");
+      if (!/^1\.[0-9]+$/.test(data.meta?.["api-version"] ?? "") || !Array.isArray(data.files)) return unknown("invalid-file-index");
       const allowed = Object.keys(manifest.files), seen = /* @__PURE__ */ new Set();
-      for (const file of data.urls) {
+      const escapedVersion = identity2.version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const releaseFilename = new RegExp(`^reacon[-_.]+sdk[-_]${escapedVersion}(?:[-.]|$)`, "i");
+      const releaseFiles = [];
+      for (const file of data.files) {
+        if (!file || typeof file.filename !== "string") return unknown("invalid-file-index");
+        if (!/^reacon[-_.]+sdk[-_]/i.test(file.filename)) return collision("unexpected-release-file");
+        if (!releaseFilename.test(file.filename)) continue;
         if (!allowed.includes(file.filename) || seen.has(file.filename)) return collision("unexpected-release-file");
         seen.add(file.filename);
+        releaseFiles.push(file);
       }
-      published = data.urls.find((file) => file.filename === identity2.filename);
+      published = releaseFiles.find((file) => file.filename === identity2.filename);
       if (!published) return finish("absent", null, "file-not-yet-uploaded");
       if (published.yanked !== false) return published.yanked === true ? collision("file-yanked") : unknown("invalid-yank-status");
-      if (published.packagetype !== (subject.unit === "wheel" ? "bdist_wheel" : "sdist")) return collision("file-type-mismatch");
       downloadUrl = published.url;
       try {
         const parsed = new URL(downloadUrl);
@@ -2607,7 +2620,7 @@ function artifactFileRegistry({
       const integrity = `sha512-${createHash5("sha512").update(content.bytes).digest("base64")}`;
       if (published.integrity !== integrity) return collision("registry-integrity-mismatch");
     } else if (manifest.family === "python") {
-      if (published.digests?.sha256 !== actualIdentity.sha256 || published.size !== actualIdentity.size) return collision("registry-integrity-mismatch");
+      if (published.hashes?.sha256 !== actualIdentity.sha256 || published.size !== actualIdentity.size) return collision("registry-integrity-mismatch");
     } else if ((manifest.family === "ruby" ? published.sha : published.checksum) !== actualIdentity.sha256) return collision("registry-integrity-mismatch");
     return finish("found", actualIdentity, "downloaded-file-identity");
   }
