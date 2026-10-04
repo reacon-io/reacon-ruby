@@ -44,7 +44,7 @@ module Reacon
     def self.openapi_types
       {
         :'portfolio' => :'MailMailPortfolio',
-        :'suppressions' => :'Array<Object>',
+        :'suppressions' => :'Array<MailMailPortfolioSuppression>',
         :'teams' => :'Array<MailMailPortfolioTeam>'
       }
     end

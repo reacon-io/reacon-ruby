@@ -57,7 +57,7 @@ module Reacon
       {
         :'created_at' => :'Time',
         :'id' => :'String',
-        :'members' => :'Array<Object>',
+        :'members' => :'Array<MailMailboxPoolMember>',
         :'name' => :'String',
         :'strategy' => :'String',
         :'tenant_id' => :'String',
