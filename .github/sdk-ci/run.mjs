@@ -1,4 +1,5 @@
 import { fixtureProxyDockerArgs } from './fixed-origin/proxy.mjs';
+import { privateNativeCache } from './private-native-cache.mjs';
 import { readFile, writeFile, mkdir, cp, readdir } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -34,8 +35,10 @@ for (const [path, digest] of Object.entries(manifest.files)) {
 const source = resolve(process.env.REACON_SDK_SOURCE ?? '.');
 const output = resolve(process.env.REACON_CI_OUTPUT ?? 'sdk-ci-results');
 await mkdir(output, { recursive: true });
-const work = resolve(output, 'work'), cache = resolve(output, 'cache');
-await mkdir(work); await mkdir(cache); await mkdir(resolve(output, 'artifacts'));
+const work = resolve(output, 'work');
+const nativeCache = await privateNativeCache({family,image:manifest.image,output});
+const cache = nativeCache.directory;
+await mkdir(work); await mkdir(resolve(output, 'artifacts'));
 // Copy source, never repository controls, credentials or prior build outputs.
 const omitted = new Set(['.git', '.github', 'node_modules', 'vendor', 'target', 'build', 'dist', '.gradle', 'bin', 'obj', '__pycache__', '.venv', 'sdk-ci-results']);
 const sourceFiles = {};
@@ -179,6 +182,7 @@ try {
     catch (error) { passed = false; failures.push(`Package retention failed: ${error.message}`); }
   }
   const report = { formatVersion: 1, kind: 'sdk-repository-source-ci', family, passed, exitCode, failures,
+    ...(nativeCache.retained ? {privateNativeCache:nativeCache} : {}),
     verificationRuntime: {kind:'pinned-container-conformance',platform:process.platform,arch:process.arch,fixtureNode:process.version},
     verificationStartedAt, verificationCompletedAt:new Date().toISOString(),
     sdkRebuilt: !prebuilt, ...(prebuilt ? {prebuiltPackageTransferSha256: prebuilt.transferSha256} : {}),
