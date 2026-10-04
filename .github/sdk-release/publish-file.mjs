@@ -1804,7 +1804,11 @@ async function nugetRegistry({
       const { state } = await store2.read(), release = state.releases[subject.releaseId], pkg = release?.packages.csharp;
       const unit = pkg?.units.nuget, attempt = unit?.attempts.at(-1);
       const observed = Date.parse(now());
-      if (state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== manifest.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(observed) || !publicationAuthorized(release, "csharp", observed)) throw new Error("No current durable NuGet publication intent");
+      if (state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== manifest.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || unit?.identitySha256 !== identitySha256 || !["publishing", "uncertain"].includes(unit.state) || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(observed) || !publicationAuthorized(release, "csharp", observed)) {
+        const error = new Error("No current durable NuGet publication intent");
+        error.publicationDiagnostic = { stage: "pre-upload-authorization", code: "EINTENTREVOKED", reason: error.message };
+        throw error;
+      }
     }
     await assertCurrentIntent();
     const bytes = Buffer.from(await readArtifact(file.sha256));
@@ -2631,7 +2635,11 @@ function artifactFileRegistry({
       const current = await store2.read(), release = current.state.releases[subject.releaseId];
       const pkg = release?.packages[subject.family], unit = pkg?.units?.[subject.unit], attempt = unit?.attempts.at(-1);
       const observedAt = Date.parse(now());
-      if (current.state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== subject.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || Object.values(release.packages).some((candidate) => Object.values(candidate.units ?? {}).some((item) => item.state === "collision")) || unit?.identitySha256 !== identitySha256 || unit.state !== "publishing" || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(observedAt) || !publicationAuthorized(release, subject.family, observedAt)) throw new Error("No current durable publication intent");
+      if (current.state.activeReleaseId !== subject.releaseId || release?.sourceRevision !== subject.sourceRevision || release.contractSha256 !== subject.contractSha256 || pkg?.artifactManifestSha256 !== manifestSha256 || Object.values(release.packages).some((candidate) => Object.values(candidate.units ?? {}).some((item) => item.state === "collision")) || unit?.identitySha256 !== identitySha256 || !["publishing", "uncertain"].includes(unit.state) || attempt?.attemptId !== subject.attemptId || attempt.runId !== subject.runId || attempt.stoppedEvidenceSha256 || !Number.isFinite(observedAt) || !publicationAuthorized(release, subject.family, observedAt)) {
+        const error = new Error("No current durable publication intent");
+        error.publicationDiagnostic = { stage: "pre-upload-authorization", code: "EINTENTREVOKED", reason: error.message };
+        throw error;
+      }
     }
     await assertCurrentIntent();
     const bytes = Buffer.from(await readArtifact(identity2.sha256));
