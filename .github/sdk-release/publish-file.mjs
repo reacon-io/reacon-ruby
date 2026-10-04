@@ -626,9 +626,13 @@ async function gitReleaseStateStore({ directory: directory2, remote, runGit = de
         } catch {
         }
         if (observed2.commit !== expectedCommit) throw new ConcurrentReleaseState();
-        if (attempt === 0 && ["repository-unavailable", "transport", "timeout"].includes(error.gitFailureCategory)) continue;
-        const category = ["repository-unavailable", "transport", "timeout", "authentication", "dns", "tls", "other"].includes(error.gitFailureCategory) ? error.gitFailureCategory : "unknown";
-        throw new Error(`Release state push was rejected (${category}); do not start publication`);
+        if (attempt === 0 && ["repository-unavailable", "transport", "timeout", "other"].includes(error.gitFailureCategory)) continue;
+        const category = ["repository-unavailable", "transport", "timeout", "authentication", "dns", "tls", "policy", "non-fast-forward", "other"].includes(error.gitFailureCategory) ? error.gitFailureCategory : "unknown";
+        const diagnostic = Number.isInteger(error.gitExitCode) ? `; exit=${error.gitExitCode}` : "";
+        const failure = new Error(`Release state push was rejected (${category}${diagnostic}); do not start publication`);
+        failure.gitFailureCategory = category;
+        failure.gitExitCode = error.gitExitCode;
+        throw failure;
       }
     }
     let observed;
@@ -649,7 +653,7 @@ async function gitReleaseStateStore({ directory: directory2, remote, runGit = de
   return { read, commit, remote, directory: directory2 };
 }
 function classifyGitFailure(detail, timedOut = false) {
-  return timedOut ? "timeout" : /authentication failed|invalid username|could not read Username|error: 401|error: 403/i.test(detail) ? "authentication" : /Could not resolve host/i.test(detail) ? "dns" : /SSL certificate|certificate verify/i.test(detail) ? "tls" : /repository not found|repository .* not found/i.test(detail) ? "repository-unavailable" : /RPC failed|HTTP\/2|remote end hung up|connection reset|Failed to connect|error: 50[0234]/i.test(detail) ? "transport" : "other";
+  return timedOut ? "timeout" : /authentication failed|invalid username|could not read Username|error: 401|error: 403/i.test(detail) ? "authentication" : /Could not resolve host/i.test(detail) ? "dns" : /SSL certificate|certificate verify/i.test(detail) ? "tls" : /non-fast-forward|fetch first/i.test(detail) ? "non-fast-forward" : /pre-receive hook declined|protected branch|repository rule|GH006|GH013|permission .* denied|not permitted to push/i.test(detail) ? "policy" : /repository not found|repository .* not found/i.test(detail) ? "repository-unavailable" : /RPC failed|HTTP\/2|remote end hung up|connection reset|Failed to connect|error: 50[0234]/i.test(detail) ? "transport" : "other";
 }
 async function defaultRunGit(args, input, env) {
   const { spawn: spawn3 } = await import("node:child_process");
@@ -682,10 +686,11 @@ async function defaultRunGit(args, input, env) {
     child.once("close", (code) => {
       clearTimeout(timeout);
       if (code === 0 && size <= 16 * 1024 * 1024) return resolveRun(Buffer.concat(chunks));
-      const detail = Buffer.concat(diagnostics).toString("utf8");
+      const detail = Buffer.concat([...diagnostics, ...chunks]).toString("utf8");
       const category = classifyGitFailure(detail, timedOut);
       const error = new Error(`Git state command failed (${category})`);
       error.gitFailureCategory = category;
+      error.gitExitCode = Number.isInteger(code) ? code : null;
       reject(error);
     });
     child.stdin.end(input);
