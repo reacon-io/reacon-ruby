@@ -15,6 +15,9 @@ require 'time'
 
 module Reacon
   class PublicStats < ApiModelBase
+    # Wire protocol major version, independent of SDK and actions-package versions.
+    attr_accessor :api_protocol_version
+
     attr_accessor :emails
 
     attr_accessor :mentions
@@ -24,6 +27,7 @@ module Reacon
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'api_protocol_version' => :'apiProtocolVersion',
         :'emails' => :'emails',
         :'mentions' => :'mentions',
         :'version' => :'version'
@@ -43,6 +47,7 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'api_protocol_version' => :'Integer',
         :'emails' => :'Integer',
         :'mentions' => :'Integer',
         :'version' => :'String'
@@ -71,6 +76,10 @@ module Reacon
         h[k.to_sym] = v
       }
 
+      if attributes.key?(:'api_protocol_version')
+        self.api_protocol_version = attributes[:'api_protocol_version']
+      end
+
       if attributes.key?(:'emails')
         self.emails = attributes[:'emails']
       else
@@ -95,6 +104,10 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
+      if !@api_protocol_version.nil? && @api_protocol_version < 1
+        invalid_properties.push('invalid value for "api_protocol_version", must be greater than or equal to 1.')
+      end
+
       if @emails.nil?
         invalid_properties.push('invalid value for "emails", emails cannot be nil.')
       end
@@ -114,10 +127,25 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
+      return false if !@api_protocol_version.nil? && @api_protocol_version < 1
       return false if @emails.nil?
       return false if @mentions.nil?
       return false if @version.nil?
       true
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] api_protocol_version Value to be assigned
+    def api_protocol_version=(api_protocol_version)
+      if api_protocol_version.nil?
+        fail ArgumentError, 'api_protocol_version cannot be nil'
+      end
+
+      if api_protocol_version < 1
+        fail ArgumentError, 'invalid value for "api_protocol_version", must be greater than or equal to 1.'
+      end
+
+      @api_protocol_version = api_protocol_version
     end
 
     # Custom attribute writer method with validation
@@ -155,6 +183,7 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          api_protocol_version == o.api_protocol_version &&
           emails == o.emails &&
           mentions == o.mentions &&
           version == o.version
@@ -169,7 +198,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [emails, mentions, version].hash
+      [api_protocol_version, emails, mentions, version].hash
     end
 
     # Builds the object from hash

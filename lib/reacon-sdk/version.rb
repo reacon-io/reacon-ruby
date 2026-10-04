@@ -11,5 +11,5 @@ Generator version: 7.25.0
 =end
 
 module Reacon
-  VERSION = '2.0.15.beta.1'
+  VERSION = '3.0.0.beta.1'
 end
