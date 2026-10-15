@@ -15,6 +15,8 @@ require 'time'
 
 module Reacon
   class MailMessageTemplateVersion < ApiModelBase
+    attr_accessor :attachments
+
     attr_accessor :body
 
     attr_accessor :channel
@@ -42,6 +44,7 @@ module Reacon
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'attachments' => :'attachments',
         :'body' => :'body',
         :'channel' => :'channel',
         :'created_at' => :'createdAt',
@@ -70,6 +73,7 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'attachments' => :'Array<MailEmailAssetReference>',
         :'body' => :'String',
         :'channel' => :'String',
         :'created_at' => :'Time',
@@ -106,6 +110,12 @@ module Reacon
         end
         h[k.to_sym] = v
       }
+
+      if attributes.key?(:'attachments')
+        if (value = attributes[:'attachments']).is_a?(Array)
+          self.attachments = value
+        end
+      end
 
       if attributes.key?(:'body')
         self.body = attributes[:'body']
@@ -348,6 +358,7 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          attachments == o.attachments &&
           body == o.body &&
           channel == o.channel &&
           created_at == o.created_at &&
@@ -371,7 +382,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [body, channel, created_at, created_by_actor_id, id, name, status, subject, tenant_id, variables, version, whatsapp_approval].hash
+      [attachments, body, channel, created_at, created_by_actor_id, id, name, status, subject, tenant_id, variables, version, whatsapp_approval].hash
     end
 
     # Builds the object from hash

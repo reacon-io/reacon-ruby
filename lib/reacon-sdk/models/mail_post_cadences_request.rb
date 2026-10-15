@@ -15,6 +15,10 @@ require 'time'
 
 module Reacon
   class MailPostCadencesRequest < ApiModelBase
+    attr_accessor :email_excluded_contact_ids
+
+    attr_accessor :email_recipient_overrides
+
     attr_accessor :id
 
     attr_accessor :name
@@ -50,6 +54,8 @@ module Reacon
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'email_excluded_contact_ids' => :'emailExcludedContactIds',
+        :'email_recipient_overrides' => :'emailRecipientOverrides',
         :'id' => :'id',
         :'name' => :'name',
         :'nodes' => :'nodes',
@@ -71,6 +77,8 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'email_excluded_contact_ids' => :'Array<String>',
+        :'email_recipient_overrides' => :'Array<MailPostCadencesRequestEmailRecipientOverridesInner>',
         :'id' => :'String',
         :'name' => :'String',
         :'nodes' => :'Array<MailPostCadencesRequestNodesInner>',
@@ -100,6 +108,18 @@ module Reacon
         end
         h[k.to_sym] = v
       }
+
+      if attributes.key?(:'email_excluded_contact_ids')
+        if (value = attributes[:'email_excluded_contact_ids']).is_a?(Array)
+          self.email_excluded_contact_ids = value
+        end
+      end
+
+      if attributes.key?(:'email_recipient_overrides')
+        if (value = attributes[:'email_recipient_overrides']).is_a?(Array)
+          self.email_recipient_overrides = value
+        end
+      end
 
       if attributes.key?(:'id')
         self.id = attributes[:'id']
@@ -135,6 +155,14 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
+      if !@email_excluded_contact_ids.nil? && @email_excluded_contact_ids.length > 15000
+        invalid_properties.push('invalid value for "email_excluded_contact_ids", number of items must be less than or equal to 15000.')
+      end
+
+      if !@email_recipient_overrides.nil? && @email_recipient_overrides.length > 500
+        invalid_properties.push('invalid value for "email_recipient_overrides", number of items must be less than or equal to 500.')
+      end
+
       if !@id.nil? && @id.to_s.length > 200
         invalid_properties.push('invalid value for "id", the character length must be smaller than or equal to 200.')
       end
@@ -178,6 +206,8 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
+      return false if !@email_excluded_contact_ids.nil? && @email_excluded_contact_ids.length > 15000
+      return false if !@email_recipient_overrides.nil? && @email_recipient_overrides.length > 500
       return false if !@id.nil? && @id.to_s.length > 200
       return false if !@id.nil? && @id.to_s.length < 1
       return false if @name.nil?
@@ -190,6 +220,34 @@ module Reacon
       status_validator = EnumAttributeValidator.new('String', ["draft", "published", "archived"])
       return false unless status_validator.valid?(@status)
       true
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] email_excluded_contact_ids Value to be assigned
+    def email_excluded_contact_ids=(email_excluded_contact_ids)
+      if email_excluded_contact_ids.nil?
+        fail ArgumentError, 'email_excluded_contact_ids cannot be nil'
+      end
+
+      if email_excluded_contact_ids.length > 15000
+        fail ArgumentError, 'invalid value for "email_excluded_contact_ids", number of items must be less than or equal to 15000.'
+      end
+
+      @email_excluded_contact_ids = email_excluded_contact_ids
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] email_recipient_overrides Value to be assigned
+    def email_recipient_overrides=(email_recipient_overrides)
+      if email_recipient_overrides.nil?
+        fail ArgumentError, 'email_recipient_overrides cannot be nil'
+      end
+
+      if email_recipient_overrides.length > 500
+        fail ArgumentError, 'invalid value for "email_recipient_overrides", number of items must be less than or equal to 500.'
+      end
+
+      @email_recipient_overrides = email_recipient_overrides
     end
 
     # Custom attribute writer method with validation
@@ -261,6 +319,8 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          email_excluded_contact_ids == o.email_excluded_contact_ids &&
+          email_recipient_overrides == o.email_recipient_overrides &&
           id == o.id &&
           name == o.name &&
           nodes == o.nodes &&
@@ -277,7 +337,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [id, name, nodes, status, stop_conditions].hash
+      [email_excluded_contact_ids, email_recipient_overrides, id, name, nodes, status, stop_conditions].hash
     end
 
     # Builds the object from hash

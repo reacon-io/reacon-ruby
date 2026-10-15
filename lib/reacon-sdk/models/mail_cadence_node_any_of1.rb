@@ -21,6 +21,8 @@ module Reacon
 
     attr_accessor :channel
 
+    attr_accessor :email_thread
+
     attr_accessor :experiment
 
     attr_accessor :kind
@@ -59,6 +61,7 @@ module Reacon
         :'id' => :'id',
         :'name' => :'name',
         :'channel' => :'channel',
+        :'email_thread' => :'emailThread',
         :'experiment' => :'experiment',
         :'kind' => :'kind',
         :'next_node_id' => :'nextNodeId',
@@ -83,6 +86,7 @@ module Reacon
         :'id' => :'String',
         :'name' => :'String',
         :'channel' => :'String',
+        :'email_thread' => :'String',
         :'experiment' => :'MailCadenceMessageExperiment',
         :'kind' => :'String',
         :'next_node_id' => :'String',
@@ -136,6 +140,10 @@ module Reacon
         self.channel = attributes[:'channel']
       else
         self.channel = nil
+      end
+
+      if attributes.key?(:'email_thread')
+        self.email_thread = attributes[:'email_thread']
       end
 
       if attributes.key?(:'experiment')
@@ -297,6 +305,7 @@ module Reacon
           id == o.id &&
           name == o.name &&
           channel == o.channel &&
+          email_thread == o.email_thread &&
           experiment == o.experiment &&
           kind == o.kind &&
           next_node_id == o.next_node_id &&
@@ -313,7 +322,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [id, name, channel, experiment, kind, next_node_id, template_id, template_version].hash
+      [id, name, channel, email_thread, experiment, kind, next_node_id, template_id, template_version].hash
     end
 
     # Builds the object from hash

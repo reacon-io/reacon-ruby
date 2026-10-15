@@ -21,6 +21,8 @@ module Reacon
 
     attr_accessor :cadence_version
 
+    attr_accessor :eligibility
+
     attr_accessor :missing_variables
 
     attr_accessor :ready
@@ -35,6 +37,7 @@ module Reacon
         :'audience_count' => :'audienceCount',
         :'cadence_id' => :'cadenceId',
         :'cadence_version' => :'cadenceVersion',
+        :'eligibility' => :'eligibility',
         :'missing_variables' => :'missingVariables',
         :'ready' => :'ready',
         :'required_variables' => :'requiredVariables',
@@ -58,6 +61,7 @@ module Reacon
         :'audience_count' => :'Float',
         :'cadence_id' => :'String',
         :'cadence_version' => :'Float',
+        :'eligibility' => :'MailRecipientEligibilitySummary',
         :'missing_variables' => :'Array<MailCadenceEnrollmentVariableGap>',
         :'ready' => :'Boolean',
         :'required_variables' => :'Array<String>',
@@ -103,6 +107,10 @@ module Reacon
         self.cadence_version = attributes[:'cadence_version']
       else
         self.cadence_version = nil
+      end
+
+      if attributes.key?(:'eligibility')
+        self.eligibility = attributes[:'eligibility']
       end
 
       if attributes.key?(:'missing_variables')
@@ -262,6 +270,7 @@ module Reacon
           audience_count == o.audience_count &&
           cadence_id == o.cadence_id &&
           cadence_version == o.cadence_version &&
+          eligibility == o.eligibility &&
           missing_variables == o.missing_variables &&
           ready == o.ready &&
           required_variables == o.required_variables &&
@@ -277,7 +286,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [audience_count, cadence_id, cadence_version, missing_variables, ready, required_variables, sender_count].hash
+      [audience_count, cadence_id, cadence_version, eligibility, missing_variables, ready, required_variables, sender_count].hash
     end
 
     # Builds the object from hash

@@ -18,10 +18,16 @@ module Reacon
     # Currently always empty.
     attr_accessor :items
 
+    attr_accessor :reason
+
+    attr_accessor :supported
+
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'items' => :'items'
+        :'items' => :'items',
+        :'reason' => :'reason',
+        :'supported' => :'supported'
       }
     end
 
@@ -38,7 +44,9 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'items' => :'Array<Object>'
+        :'items' => :'Array<Object>',
+        :'reason' => :'String',
+        :'supported' => :'Boolean'
       }
     end
 
@@ -71,6 +79,18 @@ module Reacon
       else
         self.items = nil
       end
+
+      if attributes.key?(:'reason')
+        self.reason = attributes[:'reason']
+      else
+        self.reason = nil
+      end
+
+      if attributes.key?(:'supported')
+        self.supported = attributes[:'supported']
+      else
+        self.supported = nil
+      end
     end
 
     # Show invalid properties with the reasons. Usually used together with valid?
@@ -86,6 +106,14 @@ module Reacon
         invalid_properties.push('invalid value for "items", number of items must be less than or equal to 0.')
       end
 
+      if @reason.nil?
+        invalid_properties.push('invalid value for "reason", reason cannot be nil.')
+      end
+
+      if @supported.nil?
+        invalid_properties.push('invalid value for "supported", supported cannot be nil.')
+      end
+
       invalid_properties
     end
 
@@ -95,6 +123,8 @@ module Reacon
       warn '[DEPRECATED] the `valid?` method is obsolete'
       return false if @items.nil?
       return false if @items.length > 0
+      return false if @reason.nil?
+      return false if @supported.nil?
       true
     end
 
@@ -112,12 +142,34 @@ module Reacon
       @items = items
     end
 
+    # Custom attribute writer method with validation
+    # @param [Object] reason Value to be assigned
+    def reason=(reason)
+      if reason.nil?
+        fail ArgumentError, 'reason cannot be nil'
+      end
+
+      @reason = reason
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] supported Value to be assigned
+    def supported=(supported)
+      if supported.nil?
+        fail ArgumentError, 'supported cannot be nil'
+      end
+
+      @supported = supported
+    end
+
     # Checks equality by comparing each attribute.
     # @param [Object] Object to be compared
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          items == o.items
+          items == o.items &&
+          reason == o.reason &&
+          supported == o.supported
     end
 
     # @see the `==` method
@@ -129,7 +181,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [items].hash
+      [items, reason, supported].hash
     end
 
     # Builds the object from hash

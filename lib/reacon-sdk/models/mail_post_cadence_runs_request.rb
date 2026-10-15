@@ -224,8 +224,8 @@ module Reacon
         invalid_properties.push('invalid value for "campaign_name", the character length must be greater than or equal to 1.')
       end
 
-      if !@contact_ids.nil? && @contact_ids.length > 500
-        invalid_properties.push('invalid value for "contact_ids", number of items must be less than or equal to 500.')
+      if !@contact_ids.nil? && @contact_ids.length > 15000
+        invalid_properties.push('invalid value for "contact_ids", number of items must be less than or equal to 15000.')
       end
 
       if !@contact_ids.nil? && @contact_ids.length < 1
@@ -277,7 +277,7 @@ module Reacon
       return false if !@campaign_id.nil? && @campaign_id.to_s.length < 1
       return false if !@campaign_name.nil? && @campaign_name.to_s.length > 200
       return false if !@campaign_name.nil? && @campaign_name.to_s.length < 1
-      return false if !@contact_ids.nil? && @contact_ids.length > 500
+      return false if !@contact_ids.nil? && @contact_ids.length > 15000
       return false if !@contact_ids.nil? && @contact_ids.length < 1
       enrollment_mode_validator = EnumAttributeValidator.new('String', ["new_only", "reenroll"])
       return false unless enrollment_mode_validator.valid?(@enrollment_mode)
@@ -384,8 +384,8 @@ module Reacon
         fail ArgumentError, 'contact_ids cannot be nil'
       end
 
-      if contact_ids.length > 500
-        fail ArgumentError, 'invalid value for "contact_ids", number of items must be less than or equal to 500.'
+      if contact_ids.length > 15000
+        fail ArgumentError, 'invalid value for "contact_ids", number of items must be less than or equal to 15000.'
       end
 
       if contact_ids.length < 1

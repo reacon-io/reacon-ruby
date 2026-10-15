@@ -19,6 +19,8 @@ module Reacon
 
     attr_accessor :actor_id
 
+    attr_accessor :archived_at
+
     attr_accessor :attempt_count
 
     attr_accessor :audience_count
@@ -78,6 +80,7 @@ module Reacon
       {
         :'activated_at' => :'activatedAt',
         :'actor_id' => :'actorId',
+        :'archived_at' => :'archivedAt',
         :'attempt_count' => :'attemptCount',
         :'audience_count' => :'audienceCount',
         :'audience_list_id' => :'audienceListId',
@@ -123,6 +126,7 @@ module Reacon
       {
         :'activated_at' => :'Time',
         :'actor_id' => :'String',
+        :'archived_at' => :'Time',
         :'attempt_count' => :'Float',
         :'audience_count' => :'Float',
         :'audience_list_id' => :'String',
@@ -183,6 +187,10 @@ module Reacon
         self.actor_id = attributes[:'actor_id']
       else
         self.actor_id = nil
+      end
+
+      if attributes.key?(:'archived_at')
+        self.archived_at = attributes[:'archived_at']
       end
 
       if attributes.key?(:'attempt_count')
@@ -688,6 +696,7 @@ module Reacon
       self.class == o.class &&
           activated_at == o.activated_at &&
           actor_id == o.actor_id &&
+          archived_at == o.archived_at &&
           attempt_count == o.attempt_count &&
           audience_count == o.audience_count &&
           audience_list_id == o.audience_list_id &&
@@ -726,7 +735,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [activated_at, actor_id, attempt_count, audience_count, audience_list_id, cadence_id, cadence_version, completed_at, created_at, enrolled_count, enrollment_mode, failed_count, id, idempotency_key, invalid_count, last_error, lease_expires_at, lease_owner, mailbox_id, mailbox_pool_id, name, next_attempt_at, scheduled_at, skipped_count, status, tenant_id, updated_at, validated_count, version].hash
+      [activated_at, actor_id, archived_at, attempt_count, audience_count, audience_list_id, cadence_id, cadence_version, completed_at, created_at, enrolled_count, enrollment_mode, failed_count, id, idempotency_key, invalid_count, last_error, lease_expires_at, lease_owner, mailbox_id, mailbox_pool_id, name, next_attempt_at, scheduled_at, skipped_count, status, tenant_id, updated_at, validated_count, version].hash
     end
 
     # Builds the object from hash

@@ -15,6 +15,8 @@ require 'time'
 
 module Reacon
   class MailRenderedMessage < ApiModelBase
+    attr_accessor :attachments
+
     attr_accessor :html
 
     attr_accessor :subject
@@ -24,6 +26,7 @@ module Reacon
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'attachments' => :'attachments',
         :'html' => :'html',
         :'subject' => :'subject',
         :'text' => :'text'
@@ -43,6 +46,7 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'attachments' => :'Array<MailMailAttachmentReference>',
         :'html' => :'String',
         :'subject' => :'String',
         :'text' => :'String'
@@ -70,6 +74,12 @@ module Reacon
         end
         h[k.to_sym] = v
       }
+
+      if attributes.key?(:'attachments')
+        if (value = attributes[:'attachments']).is_a?(Array)
+          self.attachments = value
+        end
+      end
 
       if attributes.key?(:'html')
         self.html = attributes[:'html']
@@ -138,6 +148,7 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          attachments == o.attachments &&
           html == o.html &&
           subject == o.subject &&
           text == o.text
@@ -152,7 +163,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [html, subject, text].hash
+      [attachments, html, subject, text].hash
     end
 
     # Builds the object from hash

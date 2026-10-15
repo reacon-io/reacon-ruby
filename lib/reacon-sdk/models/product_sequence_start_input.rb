@@ -15,15 +15,59 @@ require 'time'
 
 module Reacon
   class ProductSequenceStartInput < ApiModelBase
+    attr_accessor :audience_list_id
+
+    attr_accessor :cadence_id
+
+    attr_accessor :cadence_version
+
+    attr_accessor :enrollment_mode
+
     attr_accessor :idempotency_key
 
-    attr_accessor :sequence_id
+    attr_accessor :mailbox_id
+
+    attr_accessor :mailbox_pool_id
+
+    # The server applies trim before validating {\"type\":\"string\",\"minLength\":1,\"maxLength\":200}.
+    attr_accessor :name
+
+    attr_accessor :scheduled_at
+
+    class EnumAttributeValidator
+      attr_reader :datatype
+      attr_reader :allowable_values
+
+      def initialize(datatype, allowable_values)
+        @allowable_values = allowable_values.map do |value|
+          case datatype.to_s
+          when /Integer/i
+            value.to_i
+          when /Float/i
+            value.to_f
+          else
+            value
+          end
+        end
+      end
+
+      def valid?(value)
+        !value || allowable_values.include?(value)
+      end
+    end
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'audience_list_id' => :'audienceListId',
+        :'cadence_id' => :'cadenceId',
+        :'cadence_version' => :'cadenceVersion',
+        :'enrollment_mode' => :'enrollmentMode',
         :'idempotency_key' => :'idempotencyKey',
-        :'sequence_id' => :'sequenceId'
+        :'mailbox_id' => :'mailboxId',
+        :'mailbox_pool_id' => :'mailboxPoolId',
+        :'name' => :'name',
+        :'scheduled_at' => :'scheduledAt'
       }
     end
 
@@ -40,8 +84,15 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'audience_list_id' => :'String',
+        :'cadence_id' => :'String',
+        :'cadence_version' => :'Integer',
+        :'enrollment_mode' => :'String',
         :'idempotency_key' => :'String',
-        :'sequence_id' => :'String'
+        :'mailbox_id' => :'String',
+        :'mailbox_pool_id' => :'String',
+        :'name' => :'String',
+        :'scheduled_at' => :'Time'
       }
     end
 
@@ -67,16 +118,52 @@ module Reacon
         h[k.to_sym] = v
       }
 
+      if attributes.key?(:'audience_list_id')
+        self.audience_list_id = attributes[:'audience_list_id']
+      else
+        self.audience_list_id = nil
+      end
+
+      if attributes.key?(:'cadence_id')
+        self.cadence_id = attributes[:'cadence_id']
+      else
+        self.cadence_id = nil
+      end
+
+      if attributes.key?(:'cadence_version')
+        self.cadence_version = attributes[:'cadence_version']
+      else
+        self.cadence_version = nil
+      end
+
+      if attributes.key?(:'enrollment_mode')
+        self.enrollment_mode = attributes[:'enrollment_mode']
+      else
+        self.enrollment_mode = 'new_only'
+      end
+
       if attributes.key?(:'idempotency_key')
         self.idempotency_key = attributes[:'idempotency_key']
       else
         self.idempotency_key = nil
       end
 
-      if attributes.key?(:'sequence_id')
-        self.sequence_id = attributes[:'sequence_id']
+      if attributes.key?(:'mailbox_id')
+        self.mailbox_id = attributes[:'mailbox_id']
+      end
+
+      if attributes.key?(:'mailbox_pool_id')
+        self.mailbox_pool_id = attributes[:'mailbox_pool_id']
+      end
+
+      if attributes.key?(:'name')
+        self.name = attributes[:'name']
       else
-        self.sequence_id = nil
+        self.name = nil
+      end
+
+      if attributes.key?(:'scheduled_at')
+        self.scheduled_at = attributes[:'scheduled_at']
       end
     end
 
@@ -85,6 +172,52 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
+      if @audience_list_id.nil?
+        invalid_properties.push('invalid value for "audience_list_id", audience_list_id cannot be nil.')
+      end
+
+      if @audience_list_id.to_s.length > 200
+        invalid_properties.push('invalid value for "audience_list_id", the character length must be smaller than or equal to 200.')
+      end
+
+      if @audience_list_id.to_s.length < 1
+        invalid_properties.push('invalid value for "audience_list_id", the character length must be greater than or equal to 1.')
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if @audience_list_id !~ pattern
+        invalid_properties.push("invalid value for \"audience_list_id\", must conform to the pattern #{pattern}.")
+      end
+
+      if @cadence_id.nil?
+        invalid_properties.push('invalid value for "cadence_id", cadence_id cannot be nil.')
+      end
+
+      if @cadence_id.to_s.length > 200
+        invalid_properties.push('invalid value for "cadence_id", the character length must be smaller than or equal to 200.')
+      end
+
+      if @cadence_id.to_s.length < 1
+        invalid_properties.push('invalid value for "cadence_id", the character length must be greater than or equal to 1.')
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if @cadence_id !~ pattern
+        invalid_properties.push("invalid value for \"cadence_id\", must conform to the pattern #{pattern}.")
+      end
+
+      if @cadence_version.nil?
+        invalid_properties.push('invalid value for "cadence_version", cadence_version cannot be nil.')
+      end
+
+      if @cadence_version > 9007199254740991
+        invalid_properties.push('invalid value for "cadence_version", must be smaller than or equal to 9007199254740991.')
+      end
+
+      if @cadence_version <= 0
+        invalid_properties.push('invalid value for "cadence_version", must be greater than 0.')
+      end
+
       if @idempotency_key.nil?
         invalid_properties.push('invalid value for "idempotency_key", idempotency_key cannot be nil.')
       end
@@ -97,13 +230,34 @@ module Reacon
         invalid_properties.push('invalid value for "idempotency_key", the character length must be greater than or equal to 16.')
       end
 
-      if @sequence_id.nil?
-        invalid_properties.push('invalid value for "sequence_id", sequence_id cannot be nil.')
+      if !@mailbox_id.nil? && @mailbox_id.to_s.length > 200
+        invalid_properties.push('invalid value for "mailbox_id", the character length must be smaller than or equal to 200.')
       end
 
-      pattern = Regexp.new(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
-      if @sequence_id !~ pattern
-        invalid_properties.push("invalid value for \"sequence_id\", must conform to the pattern #{pattern}.")
+      if !@mailbox_id.nil? && @mailbox_id.to_s.length < 1
+        invalid_properties.push('invalid value for "mailbox_id", the character length must be greater than or equal to 1.')
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if !@mailbox_id.nil? && @mailbox_id !~ pattern
+        invalid_properties.push("invalid value for \"mailbox_id\", must conform to the pattern #{pattern}.")
+      end
+
+      if !@mailbox_pool_id.nil? && @mailbox_pool_id.to_s.length > 200
+        invalid_properties.push('invalid value for "mailbox_pool_id", the character length must be smaller than or equal to 200.')
+      end
+
+      if !@mailbox_pool_id.nil? && @mailbox_pool_id.to_s.length < 1
+        invalid_properties.push('invalid value for "mailbox_pool_id", the character length must be greater than or equal to 1.')
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if !@mailbox_pool_id.nil? && @mailbox_pool_id !~ pattern
+        invalid_properties.push("invalid value for \"mailbox_pool_id\", must conform to the pattern #{pattern}.")
+      end
+
+      if @name.nil?
+        invalid_properties.push('invalid value for "name", name cannot be nil.')
       end
 
       invalid_properties
@@ -113,12 +267,104 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
+      return false if @audience_list_id.nil?
+      return false if @audience_list_id.to_s.length > 200
+      return false if @audience_list_id.to_s.length < 1
+      return false if @audience_list_id !~ Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      return false if @cadence_id.nil?
+      return false if @cadence_id.to_s.length > 200
+      return false if @cadence_id.to_s.length < 1
+      return false if @cadence_id !~ Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      return false if @cadence_version.nil?
+      return false if @cadence_version > 9007199254740991
+      return false if @cadence_version <= 0
+      enrollment_mode_validator = EnumAttributeValidator.new('String', ["new_only", "reenroll"])
+      return false unless enrollment_mode_validator.valid?(@enrollment_mode)
       return false if @idempotency_key.nil?
       return false if @idempotency_key.to_s.length > 200
       return false if @idempotency_key.to_s.length < 16
-      return false if @sequence_id.nil?
-      return false if @sequence_id !~ Regexp.new(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+      return false if !@mailbox_id.nil? && @mailbox_id.to_s.length > 200
+      return false if !@mailbox_id.nil? && @mailbox_id.to_s.length < 1
+      return false if !@mailbox_id.nil? && @mailbox_id !~ Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      return false if !@mailbox_pool_id.nil? && @mailbox_pool_id.to_s.length > 200
+      return false if !@mailbox_pool_id.nil? && @mailbox_pool_id.to_s.length < 1
+      return false if !@mailbox_pool_id.nil? && @mailbox_pool_id !~ Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      return false if @name.nil?
       true
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] audience_list_id Value to be assigned
+    def audience_list_id=(audience_list_id)
+      if audience_list_id.nil?
+        fail ArgumentError, 'audience_list_id cannot be nil'
+      end
+
+      if audience_list_id.to_s.length > 200
+        fail ArgumentError, 'invalid value for "audience_list_id", the character length must be smaller than or equal to 200.'
+      end
+
+      if audience_list_id.to_s.length < 1
+        fail ArgumentError, 'invalid value for "audience_list_id", the character length must be greater than or equal to 1.'
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if audience_list_id !~ pattern
+        fail ArgumentError, "invalid value for \"audience_list_id\", must conform to the pattern #{pattern}."
+      end
+
+      @audience_list_id = audience_list_id
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] cadence_id Value to be assigned
+    def cadence_id=(cadence_id)
+      if cadence_id.nil?
+        fail ArgumentError, 'cadence_id cannot be nil'
+      end
+
+      if cadence_id.to_s.length > 200
+        fail ArgumentError, 'invalid value for "cadence_id", the character length must be smaller than or equal to 200.'
+      end
+
+      if cadence_id.to_s.length < 1
+        fail ArgumentError, 'invalid value for "cadence_id", the character length must be greater than or equal to 1.'
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if cadence_id !~ pattern
+        fail ArgumentError, "invalid value for \"cadence_id\", must conform to the pattern #{pattern}."
+      end
+
+      @cadence_id = cadence_id
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] cadence_version Value to be assigned
+    def cadence_version=(cadence_version)
+      if cadence_version.nil?
+        fail ArgumentError, 'cadence_version cannot be nil'
+      end
+
+      if cadence_version > 9007199254740991
+        fail ArgumentError, 'invalid value for "cadence_version", must be smaller than or equal to 9007199254740991.'
+      end
+
+      if cadence_version <= 0
+        fail ArgumentError, 'invalid value for "cadence_version", must be greater than 0.'
+      end
+
+      @cadence_version = cadence_version
+    end
+
+    # Custom attribute writer method checking allowed values (enum).
+    # @param [Object] enrollment_mode Object to be assigned
+    def enrollment_mode=(enrollment_mode)
+      validator = EnumAttributeValidator.new('String', ["new_only", "reenroll"])
+      unless validator.valid?(enrollment_mode)
+        fail ArgumentError, "invalid value for \"enrollment_mode\", must be one of #{validator.allowable_values}."
+      end
+      @enrollment_mode = enrollment_mode
     end
 
     # Custom attribute writer method with validation
@@ -140,18 +386,59 @@ module Reacon
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] sequence_id Value to be assigned
-    def sequence_id=(sequence_id)
-      if sequence_id.nil?
-        fail ArgumentError, 'sequence_id cannot be nil'
+    # @param [Object] mailbox_id Value to be assigned
+    def mailbox_id=(mailbox_id)
+      if mailbox_id.nil?
+        fail ArgumentError, 'mailbox_id cannot be nil'
       end
 
-      pattern = Regexp.new(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
-      if sequence_id !~ pattern
-        fail ArgumentError, "invalid value for \"sequence_id\", must conform to the pattern #{pattern}."
+      if mailbox_id.to_s.length > 200
+        fail ArgumentError, 'invalid value for "mailbox_id", the character length must be smaller than or equal to 200.'
       end
 
-      @sequence_id = sequence_id
+      if mailbox_id.to_s.length < 1
+        fail ArgumentError, 'invalid value for "mailbox_id", the character length must be greater than or equal to 1.'
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if mailbox_id !~ pattern
+        fail ArgumentError, "invalid value for \"mailbox_id\", must conform to the pattern #{pattern}."
+      end
+
+      @mailbox_id = mailbox_id
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] mailbox_pool_id Value to be assigned
+    def mailbox_pool_id=(mailbox_pool_id)
+      if mailbox_pool_id.nil?
+        fail ArgumentError, 'mailbox_pool_id cannot be nil'
+      end
+
+      if mailbox_pool_id.to_s.length > 200
+        fail ArgumentError, 'invalid value for "mailbox_pool_id", the character length must be smaller than or equal to 200.'
+      end
+
+      if mailbox_pool_id.to_s.length < 1
+        fail ArgumentError, 'invalid value for "mailbox_pool_id", the character length must be greater than or equal to 1.'
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
+      if mailbox_pool_id !~ pattern
+        fail ArgumentError, "invalid value for \"mailbox_pool_id\", must conform to the pattern #{pattern}."
+      end
+
+      @mailbox_pool_id = mailbox_pool_id
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] name Value to be assigned
+    def name=(name)
+      if name.nil?
+        fail ArgumentError, 'name cannot be nil'
+      end
+
+      @name = name
     end
 
     # Checks equality by comparing each attribute.
@@ -159,8 +446,15 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          audience_list_id == o.audience_list_id &&
+          cadence_id == o.cadence_id &&
+          cadence_version == o.cadence_version &&
+          enrollment_mode == o.enrollment_mode &&
           idempotency_key == o.idempotency_key &&
-          sequence_id == o.sequence_id
+          mailbox_id == o.mailbox_id &&
+          mailbox_pool_id == o.mailbox_pool_id &&
+          name == o.name &&
+          scheduled_at == o.scheduled_at
     end
 
     # @see the `==` method
@@ -172,7 +466,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [idempotency_key, sequence_id].hash
+      [audience_list_id, cadence_id, cadence_version, enrollment_mode, idempotency_key, mailbox_id, mailbox_pool_id, name, scheduled_at].hash
     end
 
     # Builds the object from hash

@@ -17,12 +17,15 @@ module Reacon
   class MailPostInboxByMessageIdReplyRequest < ApiModelBase
     attr_accessor :client_request_id
 
+    attr_accessor :draft_revision
+
     attr_accessor :text
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
         :'client_request_id' => :'clientRequestId',
+        :'draft_revision' => :'draftRevision',
         :'text' => :'text'
       }
     end
@@ -41,6 +44,7 @@ module Reacon
     def self.openapi_types
       {
         :'client_request_id' => :'String',
+        :'draft_revision' => :'Integer',
         :'text' => :'String'
       }
     end
@@ -73,6 +77,10 @@ module Reacon
         self.client_request_id = nil
       end
 
+      if attributes.key?(:'draft_revision')
+        self.draft_revision = attributes[:'draft_revision']
+      end
+
       if attributes.key?(:'text')
         self.text = attributes[:'text']
       else
@@ -97,6 +105,10 @@ module Reacon
         invalid_properties.push('invalid value for "client_request_id", the character length must be greater than or equal to 8.')
       end
 
+      if !@draft_revision.nil? && @draft_revision <= 0
+        invalid_properties.push('invalid value for "draft_revision", must be greater than 0.')
+      end
+
       if @text.nil?
         invalid_properties.push('invalid value for "text", text cannot be nil.')
       end
@@ -119,6 +131,7 @@ module Reacon
       return false if @client_request_id.nil?
       return false if @client_request_id.to_s.length > 200
       return false if @client_request_id.to_s.length < 8
+      return false if !@draft_revision.nil? && @draft_revision <= 0
       return false if @text.nil?
       return false if @text.to_s.length > 200000
       return false if @text.to_s.length < 1
@@ -141,6 +154,20 @@ module Reacon
       end
 
       @client_request_id = client_request_id
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] draft_revision Value to be assigned
+    def draft_revision=(draft_revision)
+      if draft_revision.nil?
+        fail ArgumentError, 'draft_revision cannot be nil'
+      end
+
+      if draft_revision <= 0
+        fail ArgumentError, 'invalid value for "draft_revision", must be greater than 0.'
+      end
+
+      @draft_revision = draft_revision
     end
 
     # Custom attribute writer method with validation
@@ -167,6 +194,7 @@ module Reacon
       return true if self.equal?(o)
       self.class == o.class &&
           client_request_id == o.client_request_id &&
+          draft_revision == o.draft_revision &&
           text == o.text
     end
 
@@ -179,7 +207,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [client_request_id, text].hash
+      [client_request_id, draft_revision, text].hash
     end
 
     # Builds the object from hash

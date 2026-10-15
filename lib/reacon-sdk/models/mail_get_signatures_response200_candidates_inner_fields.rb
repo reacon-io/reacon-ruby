@@ -14,31 +14,34 @@ require 'date'
 require 'time'
 
 module Reacon
-  class ProductDatedRecipient < ApiModelBase
-    attr_accessor :created_at
+  class MailGetSignaturesResponse200CandidatesInnerFields < ApiModelBase
+    attr_accessor :address
 
-    attr_accessor :email
+    attr_accessor :company
 
-    attr_accessor :id
+    attr_accessor :emails
 
-    attr_accessor :lead_id
+    attr_accessor :job_title
 
-    attr_accessor :sequence_id
+    attr_accessor :person_name
 
-    attr_accessor :status
+    attr_accessor :phones
 
-    attr_accessor :updated_at
+    attr_accessor :social_profiles
+
+    attr_accessor :websites
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'created_at' => :'createdAt',
-        :'email' => :'email',
-        :'id' => :'id',
-        :'lead_id' => :'leadId',
-        :'sequence_id' => :'sequenceId',
-        :'status' => :'status',
-        :'updated_at' => :'updatedAt'
+        :'address' => :'address',
+        :'company' => :'company',
+        :'emails' => :'emails',
+        :'job_title' => :'jobTitle',
+        :'person_name' => :'personName',
+        :'phones' => :'phones',
+        :'social_profiles' => :'socialProfiles',
+        :'websites' => :'websites'
       }
     end
 
@@ -55,20 +58,20 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'created_at' => :'Time',
-        :'email' => :'String',
-        :'id' => :'String',
-        :'lead_id' => :'String',
-        :'sequence_id' => :'String',
-        :'status' => :'String',
-        :'updated_at' => :'Time'
+        :'address' => :'MailEvidenceField',
+        :'company' => :'MailEvidenceField',
+        :'emails' => :'Array<MailEvidenceField>',
+        :'job_title' => :'MailEvidenceField',
+        :'person_name' => :'MailEvidenceField',
+        :'phones' => :'Array<MailGetSignaturesResponse200CandidatesInnerFieldsPhonesInner>',
+        :'social_profiles' => :'Array<MailEvidenceField>',
+        :'websites' => :'Array<MailEvidenceField>'
       }
     end
 
     # List of attributes with nullable: true
     def self.openapi_nullable
       Set.new([
-        :'lead_id',
       ])
     end
 
@@ -76,58 +79,64 @@ module Reacon
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `Reacon::ProductDatedRecipient` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `Reacon::MailGetSignaturesResponse200CandidatesInnerFields` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `Reacon::ProductDatedRecipient`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `Reacon::MailGetSignaturesResponse200CandidatesInnerFields`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'created_at')
-        self.created_at = attributes[:'created_at']
-      else
-        self.created_at = nil
+      if attributes.key?(:'address')
+        self.address = attributes[:'address']
       end
 
-      if attributes.key?(:'email')
-        self.email = attributes[:'email']
-      else
-        self.email = nil
+      if attributes.key?(:'company')
+        self.company = attributes[:'company']
       end
 
-      if attributes.key?(:'id')
-        self.id = attributes[:'id']
+      if attributes.key?(:'emails')
+        if (value = attributes[:'emails']).is_a?(Array)
+          self.emails = value
+        end
       else
-        self.id = nil
+        self.emails = nil
       end
 
-      if attributes.key?(:'lead_id')
-        self.lead_id = attributes[:'lead_id']
-      else
-        self.lead_id = nil
+      if attributes.key?(:'job_title')
+        self.job_title = attributes[:'job_title']
       end
 
-      if attributes.key?(:'sequence_id')
-        self.sequence_id = attributes[:'sequence_id']
-      else
-        self.sequence_id = nil
+      if attributes.key?(:'person_name')
+        self.person_name = attributes[:'person_name']
       end
 
-      if attributes.key?(:'status')
-        self.status = attributes[:'status']
+      if attributes.key?(:'phones')
+        if (value = attributes[:'phones']).is_a?(Array)
+          self.phones = value
+        end
       else
-        self.status = nil
+        self.phones = nil
       end
 
-      if attributes.key?(:'updated_at')
-        self.updated_at = attributes[:'updated_at']
+      if attributes.key?(:'social_profiles')
+        if (value = attributes[:'social_profiles']).is_a?(Array)
+          self.social_profiles = value
+        end
       else
-        self.updated_at = nil
+        self.social_profiles = nil
+      end
+
+      if attributes.key?(:'websites')
+        if (value = attributes[:'websites']).is_a?(Array)
+          self.websites = value
+        end
+      else
+        self.websites = nil
       end
     end
 
@@ -136,28 +145,20 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
-      if @created_at.nil?
-        invalid_properties.push('invalid value for "created_at", created_at cannot be nil.')
+      if @emails.nil?
+        invalid_properties.push('invalid value for "emails", emails cannot be nil.')
       end
 
-      if @email.nil?
-        invalid_properties.push('invalid value for "email", email cannot be nil.')
+      if @phones.nil?
+        invalid_properties.push('invalid value for "phones", phones cannot be nil.')
       end
 
-      if @id.nil?
-        invalid_properties.push('invalid value for "id", id cannot be nil.')
+      if @social_profiles.nil?
+        invalid_properties.push('invalid value for "social_profiles", social_profiles cannot be nil.')
       end
 
-      if @sequence_id.nil?
-        invalid_properties.push('invalid value for "sequence_id", sequence_id cannot be nil.')
-      end
-
-      if @status.nil?
-        invalid_properties.push('invalid value for "status", status cannot be nil.')
-      end
-
-      if @updated_at.nil?
-        invalid_properties.push('invalid value for "updated_at", updated_at cannot be nil.')
+      if @websites.nil?
+        invalid_properties.push('invalid value for "websites", websites cannot be nil.')
       end
 
       invalid_properties
@@ -167,73 +168,51 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
-      return false if @created_at.nil?
-      return false if @email.nil?
-      return false if @id.nil?
-      return false if @sequence_id.nil?
-      return false if @status.nil?
-      return false if @updated_at.nil?
+      return false if @emails.nil?
+      return false if @phones.nil?
+      return false if @social_profiles.nil?
+      return false if @websites.nil?
       true
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] created_at Value to be assigned
-    def created_at=(created_at)
-      if created_at.nil?
-        fail ArgumentError, 'created_at cannot be nil'
+    # @param [Object] emails Value to be assigned
+    def emails=(emails)
+      if emails.nil?
+        fail ArgumentError, 'emails cannot be nil'
       end
 
-      @created_at = created_at
+      @emails = emails
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] email Value to be assigned
-    def email=(email)
-      if email.nil?
-        fail ArgumentError, 'email cannot be nil'
+    # @param [Object] phones Value to be assigned
+    def phones=(phones)
+      if phones.nil?
+        fail ArgumentError, 'phones cannot be nil'
       end
 
-      @email = email
+      @phones = phones
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] id Value to be assigned
-    def id=(id)
-      if id.nil?
-        fail ArgumentError, 'id cannot be nil'
+    # @param [Object] social_profiles Value to be assigned
+    def social_profiles=(social_profiles)
+      if social_profiles.nil?
+        fail ArgumentError, 'social_profiles cannot be nil'
       end
 
-      @id = id
+      @social_profiles = social_profiles
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] sequence_id Value to be assigned
-    def sequence_id=(sequence_id)
-      if sequence_id.nil?
-        fail ArgumentError, 'sequence_id cannot be nil'
+    # @param [Object] websites Value to be assigned
+    def websites=(websites)
+      if websites.nil?
+        fail ArgumentError, 'websites cannot be nil'
       end
 
-      @sequence_id = sequence_id
-    end
-
-    # Custom attribute writer method with validation
-    # @param [Object] status Value to be assigned
-    def status=(status)
-      if status.nil?
-        fail ArgumentError, 'status cannot be nil'
-      end
-
-      @status = status
-    end
-
-    # Custom attribute writer method with validation
-    # @param [Object] updated_at Value to be assigned
-    def updated_at=(updated_at)
-      if updated_at.nil?
-        fail ArgumentError, 'updated_at cannot be nil'
-      end
-
-      @updated_at = updated_at
+      @websites = websites
     end
 
     # Checks equality by comparing each attribute.
@@ -241,13 +220,14 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          created_at == o.created_at &&
-          email == o.email &&
-          id == o.id &&
-          lead_id == o.lead_id &&
-          sequence_id == o.sequence_id &&
-          status == o.status &&
-          updated_at == o.updated_at
+          address == o.address &&
+          company == o.company &&
+          emails == o.emails &&
+          job_title == o.job_title &&
+          person_name == o.person_name &&
+          phones == o.phones &&
+          social_profiles == o.social_profiles &&
+          websites == o.websites
     end
 
     # @see the `==` method
@@ -259,7 +239,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [created_at, email, id, lead_id, sequence_id, status, updated_at].hash
+      [address, company, emails, job_title, person_name, phones, social_profiles, websites].hash
     end
 
     # Builds the object from hash

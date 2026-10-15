@@ -17,6 +17,7 @@ module Reacon
   class ProductSequenceRecipientsListExecution < ApiModelBase
     attr_accessor :execution_id
 
+    # Response body of the Mail API operation GET /v1/teams/{teamId}/mail/cadence-recipients, returned unchanged.
     attr_accessor :output
 
     attr_accessor :replay
@@ -69,7 +70,7 @@ module Reacon
     def self.openapi_types
       {
         :'execution_id' => :'String',
-        :'output' => :'ProductSequenceRecipientsListOutput',
+        :'output' => :'Hash<String, Object>',
         :'replay' => :'Boolean',
         :'tool' => :'String'
       }
@@ -105,7 +106,9 @@ module Reacon
       end
 
       if attributes.key?(:'output')
-        self.output = attributes[:'output']
+        if (value = attributes[:'output']).is_a?(Hash)
+          self.output = value
+        end
       else
         self.output = nil
       end
