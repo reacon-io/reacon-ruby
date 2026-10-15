@@ -23,13 +23,16 @@ module Reacon
 
     attr_accessor :whatsapp
 
+    attr_accessor :worker
+
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
         :'email' => :'email',
         :'execution' => :'execution',
         :'sms' => :'sms',
-        :'whatsapp' => :'whatsapp'
+        :'whatsapp' => :'whatsapp',
+        :'worker' => :'worker'
       }
     end
 
@@ -49,7 +52,8 @@ module Reacon
         :'email' => :'MailGetChannelsResponse200Email',
         :'execution' => :'MailGetChannelsResponse200Execution',
         :'sms' => :'MailGetChannelsResponse200Sms',
-        :'whatsapp' => :'MailGetChannelsResponse200Whatsapp'
+        :'whatsapp' => :'MailGetChannelsResponse200Whatsapp',
+        :'worker' => :'MailMailExecutionWorkerStatus'
       }
     end
 
@@ -98,6 +102,12 @@ module Reacon
       else
         self.whatsapp = nil
       end
+
+      if attributes.key?(:'worker')
+        self.worker = attributes[:'worker']
+      else
+        self.worker = nil
+      end
     end
 
     # Show invalid properties with the reasons. Usually used together with valid?
@@ -121,6 +131,10 @@ module Reacon
         invalid_properties.push('invalid value for "whatsapp", whatsapp cannot be nil.')
       end
 
+      if @worker.nil?
+        invalid_properties.push('invalid value for "worker", worker cannot be nil.')
+      end
+
       invalid_properties
     end
 
@@ -132,6 +146,7 @@ module Reacon
       return false if @execution.nil?
       return false if @sms.nil?
       return false if @whatsapp.nil?
+      return false if @worker.nil?
       true
     end
 
@@ -175,6 +190,16 @@ module Reacon
       @whatsapp = whatsapp
     end
 
+    # Custom attribute writer method with validation
+    # @param [Object] worker Value to be assigned
+    def worker=(worker)
+      if worker.nil?
+        fail ArgumentError, 'worker cannot be nil'
+      end
+
+      @worker = worker
+    end
+
     # Checks equality by comparing each attribute.
     # @param [Object] Object to be compared
     def ==(o)
@@ -183,7 +208,8 @@ module Reacon
           email == o.email &&
           execution == o.execution &&
           sms == o.sms &&
-          whatsapp == o.whatsapp
+          whatsapp == o.whatsapp &&
+          worker == o.worker
     end
 
     # @see the `==` method
@@ -195,7 +221,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [email, execution, sms, whatsapp].hash
+      [email, execution, sms, whatsapp, worker].hash
     end
 
     # Builds the object from hash

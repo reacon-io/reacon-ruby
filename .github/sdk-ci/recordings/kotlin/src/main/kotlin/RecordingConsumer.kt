@@ -116,7 +116,9 @@ fun main(){
                     check((rejected as? InvocationTargetException)?.cause.let { it is IllegalArgumentException && it.message?.contains("exportLeadsCsv") == true }) { "JSON export did not reject CSV before sending" }
                     val helper = clazz.memberFunctions.single { it.name == "exportLeadsCsv" }
                     val original = (arguments.entries.single { it.key.name == "exportLeadsRequest" }.value as ExportLeadsRequest).copy(format=ExportLeadsRequest.Format.JSON)
-                    val helperArguments = helper.parameters.associateWith { parameter ->
+                    // Optional helper parameters (e.g. requestOptions) keep their defaults.
+                    val helperArguments = helper.parameters.filter { parameter -> parameter.kind == KParameter.Kind.INSTANCE ||
+                        parameter.name == "exportLeadsRequest" || arguments.keys.any { it.name == parameter.name } || !parameter.isOptional }.associateWith { parameter ->
                         when {
                             parameter.kind == KParameter.Kind.INSTANCE -> api
                             parameter.name == "exportLeadsRequest" -> original
@@ -138,7 +140,7 @@ fun main(){
             val expected=item["record"]["response"]
             val decoded=runCatching{if(body is String)mapper.readTree(body) else mapper.valueToTree<JsonNode>(body)}.getOrNull()
             if(status>=400&&status==expected["status"].asInt()&&decoded!=null&&equalJson(decoded,expected["body"]))result.put("passed",true)
-            else result.put("passed",false).put("error",error.toString())
+            else result.put("passed",false).put("error",generateSequence<Throwable>(error){it.cause}.take(4).joinToString(" <= "){it.toString().take(400)})
         }
         results.add(result)
     }

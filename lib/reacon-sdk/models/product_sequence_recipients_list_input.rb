@@ -15,11 +15,17 @@ require 'time'
 
 module Reacon
   class ProductSequenceRecipientsListInput < ApiModelBase
+    attr_accessor :limit
+
+    attr_accessor :offset
+
     attr_accessor :sequence_id
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'limit' => :'limit',
+        :'offset' => :'offset',
         :'sequence_id' => :'sequenceId'
       }
     end
@@ -37,6 +43,8 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'limit' => :'Integer',
+        :'offset' => :'Integer',
         :'sequence_id' => :'String'
       }
     end
@@ -63,6 +71,18 @@ module Reacon
         h[k.to_sym] = v
       }
 
+      if attributes.key?(:'limit')
+        self.limit = attributes[:'limit']
+      else
+        self.limit = 25
+      end
+
+      if attributes.key?(:'offset')
+        self.offset = attributes[:'offset']
+      else
+        self.offset = 0
+      end
+
       if attributes.key?(:'sequence_id')
         self.sequence_id = attributes[:'sequence_id']
       else
@@ -75,11 +95,35 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
+      if !@limit.nil? && @limit > 100
+        invalid_properties.push('invalid value for "limit", must be smaller than or equal to 100.')
+      end
+
+      if !@limit.nil? && @limit < 1
+        invalid_properties.push('invalid value for "limit", must be greater than or equal to 1.')
+      end
+
+      if !@offset.nil? && @offset > 10000
+        invalid_properties.push('invalid value for "offset", must be smaller than or equal to 10000.')
+      end
+
+      if !@offset.nil? && @offset < 0
+        invalid_properties.push('invalid value for "offset", must be greater than or equal to 0.')
+      end
+
       if @sequence_id.nil?
         invalid_properties.push('invalid value for "sequence_id", sequence_id cannot be nil.')
       end
 
-      pattern = Regexp.new(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+      if @sequence_id.to_s.length > 200
+        invalid_properties.push('invalid value for "sequence_id", the character length must be smaller than or equal to 200.')
+      end
+
+      if @sequence_id.to_s.length < 1
+        invalid_properties.push('invalid value for "sequence_id", the character length must be greater than or equal to 1.')
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
       if @sequence_id !~ pattern
         invalid_properties.push("invalid value for \"sequence_id\", must conform to the pattern #{pattern}.")
       end
@@ -91,9 +135,51 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
+      return false if !@limit.nil? && @limit > 100
+      return false if !@limit.nil? && @limit < 1
+      return false if !@offset.nil? && @offset > 10000
+      return false if !@offset.nil? && @offset < 0
       return false if @sequence_id.nil?
-      return false if @sequence_id !~ Regexp.new(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+      return false if @sequence_id.to_s.length > 200
+      return false if @sequence_id.to_s.length < 1
+      return false if @sequence_id !~ Regexp.new(/^[a-zA-Z0-9_-]+$/)
       true
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] limit Value to be assigned
+    def limit=(limit)
+      if limit.nil?
+        fail ArgumentError, 'limit cannot be nil'
+      end
+
+      if limit > 100
+        fail ArgumentError, 'invalid value for "limit", must be smaller than or equal to 100.'
+      end
+
+      if limit < 1
+        fail ArgumentError, 'invalid value for "limit", must be greater than or equal to 1.'
+      end
+
+      @limit = limit
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] offset Value to be assigned
+    def offset=(offset)
+      if offset.nil?
+        fail ArgumentError, 'offset cannot be nil'
+      end
+
+      if offset > 10000
+        fail ArgumentError, 'invalid value for "offset", must be smaller than or equal to 10000.'
+      end
+
+      if offset < 0
+        fail ArgumentError, 'invalid value for "offset", must be greater than or equal to 0.'
+      end
+
+      @offset = offset
     end
 
     # Custom attribute writer method with validation
@@ -103,7 +189,15 @@ module Reacon
         fail ArgumentError, 'sequence_id cannot be nil'
       end
 
-      pattern = Regexp.new(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+      if sequence_id.to_s.length > 200
+        fail ArgumentError, 'invalid value for "sequence_id", the character length must be smaller than or equal to 200.'
+      end
+
+      if sequence_id.to_s.length < 1
+        fail ArgumentError, 'invalid value for "sequence_id", the character length must be greater than or equal to 1.'
+      end
+
+      pattern = Regexp.new(/^[a-zA-Z0-9_-]+$/)
       if sequence_id !~ pattern
         fail ArgumentError, "invalid value for \"sequence_id\", must conform to the pattern #{pattern}."
       end
@@ -116,6 +210,8 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          limit == o.limit &&
+          offset == o.offset &&
           sequence_id == o.sequence_id
     end
 
@@ -128,7 +224,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [sequence_id].hash
+      [limit, offset, sequence_id].hash
     end
 
     # Builds the object from hash

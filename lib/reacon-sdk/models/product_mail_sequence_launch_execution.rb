@@ -14,19 +14,45 @@ require 'date'
 require 'time'
 
 module Reacon
-  class ProductSequenceStartOutput < ApiModelBase
-    attr_accessor :id
+  class ProductMailSequenceLaunchExecution < ApiModelBase
+    attr_accessor :execution_id
 
-    attr_accessor :name
+    # Response body of the Mail API operation POST /v1/teams/{teamId}/mail/cadence-campaigns, returned unchanged.
+    attr_accessor :output
 
-    attr_accessor :status
+    attr_accessor :replay
+
+    attr_accessor :tool
+
+    class EnumAttributeValidator
+      attr_reader :datatype
+      attr_reader :allowable_values
+
+      def initialize(datatype, allowable_values)
+        @allowable_values = allowable_values.map do |value|
+          case datatype.to_s
+          when /Integer/i
+            value.to_i
+          when /Float/i
+            value.to_f
+          else
+            value
+          end
+        end
+      end
+
+      def valid?(value)
+        !value || allowable_values.include?(value)
+      end
+    end
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'id' => :'id',
-        :'name' => :'name',
-        :'status' => :'status'
+        :'execution_id' => :'executionId',
+        :'output' => :'output',
+        :'replay' => :'replay',
+        :'tool' => :'tool'
       }
     end
 
@@ -43,9 +69,10 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'id' => :'String',
-        :'name' => :'String',
-        :'status' => :'String'
+        :'execution_id' => :'String',
+        :'output' => :'Hash<String, Object>',
+        :'replay' => :'Boolean',
+        :'tool' => :'String'
       }
     end
 
@@ -59,34 +86,42 @@ module Reacon
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `Reacon::ProductSequenceStartOutput` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `Reacon::ProductMailSequenceLaunchExecution` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `Reacon::ProductSequenceStartOutput`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `Reacon::ProductMailSequenceLaunchExecution`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'id')
-        self.id = attributes[:'id']
+      if attributes.key?(:'execution_id')
+        self.execution_id = attributes[:'execution_id']
       else
-        self.id = nil
+        self.execution_id = nil
       end
 
-      if attributes.key?(:'name')
-        self.name = attributes[:'name']
+      if attributes.key?(:'output')
+        if (value = attributes[:'output']).is_a?(Hash)
+          self.output = value
+        end
       else
-        self.name = nil
+        self.output = nil
       end
 
-      if attributes.key?(:'status')
-        self.status = attributes[:'status']
+      if attributes.key?(:'replay')
+        self.replay = attributes[:'replay']
       else
-        self.status = nil
+        self.replay = nil
+      end
+
+      if attributes.key?(:'tool')
+        self.tool = attributes[:'tool']
+      else
+        self.tool = nil
       end
     end
 
@@ -95,16 +130,20 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
-      if @id.nil?
-        invalid_properties.push('invalid value for "id", id cannot be nil.')
+      if @execution_id.nil?
+        invalid_properties.push('invalid value for "execution_id", execution_id cannot be nil.')
       end
 
-      if @name.nil?
-        invalid_properties.push('invalid value for "name", name cannot be nil.')
+      if @output.nil?
+        invalid_properties.push('invalid value for "output", output cannot be nil.')
       end
 
-      if @status.nil?
-        invalid_properties.push('invalid value for "status", status cannot be nil.')
+      if @replay.nil?
+        invalid_properties.push('invalid value for "replay", replay cannot be nil.')
+      end
+
+      if @tool.nil?
+        invalid_properties.push('invalid value for "tool", tool cannot be nil.')
       end
 
       invalid_properties
@@ -114,40 +153,53 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
-      return false if @id.nil?
-      return false if @name.nil?
-      return false if @status.nil?
+      return false if @execution_id.nil?
+      return false if @output.nil?
+      return false if @replay.nil?
+      return false if @tool.nil?
+      tool_validator = EnumAttributeValidator.new('String', ["mail_sequence_launch"])
+      return false unless tool_validator.valid?(@tool)
       true
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] id Value to be assigned
-    def id=(id)
-      if id.nil?
-        fail ArgumentError, 'id cannot be nil'
+    # @param [Object] execution_id Value to be assigned
+    def execution_id=(execution_id)
+      if execution_id.nil?
+        fail ArgumentError, 'execution_id cannot be nil'
       end
 
-      @id = id
+      @execution_id = execution_id
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] name Value to be assigned
-    def name=(name)
-      if name.nil?
-        fail ArgumentError, 'name cannot be nil'
+    # @param [Object] output Value to be assigned
+    def output=(output)
+      if output.nil?
+        fail ArgumentError, 'output cannot be nil'
       end
 
-      @name = name
+      @output = output
     end
 
     # Custom attribute writer method with validation
-    # @param [Object] status Value to be assigned
-    def status=(status)
-      if status.nil?
-        fail ArgumentError, 'status cannot be nil'
+    # @param [Object] replay Value to be assigned
+    def replay=(replay)
+      if replay.nil?
+        fail ArgumentError, 'replay cannot be nil'
       end
 
-      @status = status
+      @replay = replay
+    end
+
+    # Custom attribute writer method checking allowed values (enum).
+    # @param [Object] tool Object to be assigned
+    def tool=(tool)
+      validator = EnumAttributeValidator.new('String', ["mail_sequence_launch"])
+      unless validator.valid?(tool)
+        fail ArgumentError, "invalid value for \"tool\", must be one of #{validator.allowable_values}."
+      end
+      @tool = tool
     end
 
     # Checks equality by comparing each attribute.
@@ -155,9 +207,10 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          id == o.id &&
-          name == o.name &&
-          status == o.status
+          execution_id == o.execution_id &&
+          output == o.output &&
+          replay == o.replay &&
+          tool == o.tool
     end
 
     # @see the `==` method
@@ -169,7 +222,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [id, name, status].hash
+      [execution_id, output, replay, tool].hash
     end
 
     # Builds the object from hash

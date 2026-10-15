@@ -142,8 +142,8 @@ module Reacon
         invalid_properties.push('invalid value for "cadence_version", must be greater than 0.')
       end
 
-      if !@contact_ids.nil? && @contact_ids.length > 500
-        invalid_properties.push('invalid value for "contact_ids", number of items must be less than or equal to 500.')
+      if !@contact_ids.nil? && @contact_ids.length > 15000
+        invalid_properties.push('invalid value for "contact_ids", number of items must be less than or equal to 15000.')
       end
 
       if !@contact_ids.nil? && @contact_ids.length < 1
@@ -179,7 +179,7 @@ module Reacon
       return false if @cadence_id.to_s.length > 200
       return false if @cadence_id.to_s.length < 1
       return false if !@cadence_version.nil? && @cadence_version <= 0
-      return false if !@contact_ids.nil? && @contact_ids.length > 500
+      return false if !@contact_ids.nil? && @contact_ids.length > 15000
       return false if !@contact_ids.nil? && @contact_ids.length < 1
       return false if !@mailbox_id.nil? && @mailbox_id.to_s.length > 200
       return false if !@mailbox_id.nil? && @mailbox_id.to_s.length < 1
@@ -245,8 +245,8 @@ module Reacon
         fail ArgumentError, 'contact_ids cannot be nil'
       end
 
-      if contact_ids.length > 500
-        fail ArgumentError, 'invalid value for "contact_ids", number of items must be less than or equal to 500.'
+      if contact_ids.length > 15000
+        fail ArgumentError, 'invalid value for "contact_ids", number of items must be less than or equal to 15000.'
       end
 
       if contact_ids.length < 1

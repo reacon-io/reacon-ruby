@@ -40,7 +40,7 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'candidates' => :'Array<MailSignatureCandidate>',
+        :'candidates' => :'Array<MailGetSignaturesResponse200CandidatesInner>',
         :'next_cursor' => :'String'
       }
     end

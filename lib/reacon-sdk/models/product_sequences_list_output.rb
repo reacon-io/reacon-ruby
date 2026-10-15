@@ -15,12 +15,46 @@ require 'time'
 
 module Reacon
   class ProductSequencesListOutput < ApiModelBase
+    attr_accessor :cadences
+
+    attr_accessor :campaigns
+
+    attr_accessor :drafts
+
     attr_accessor :items
+
+    attr_accessor :source
+
+    class EnumAttributeValidator
+      attr_reader :datatype
+      attr_reader :allowable_values
+
+      def initialize(datatype, allowable_values)
+        @allowable_values = allowable_values.map do |value|
+          case datatype.to_s
+          when /Integer/i
+            value.to_i
+          when /Float/i
+            value.to_f
+          else
+            value
+          end
+        end
+      end
+
+      def valid?(value)
+        !value || allowable_values.include?(value)
+      end
+    end
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'items' => :'items'
+        :'cadences' => :'cadences',
+        :'campaigns' => :'campaigns',
+        :'drafts' => :'drafts',
+        :'items' => :'items',
+        :'source' => :'source'
       }
     end
 
@@ -37,7 +71,11 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'items' => :'Array<ProductSequence>'
+        :'cadences' => :'Array<Hash<String, Object>>',
+        :'campaigns' => :'Array<Hash<String, Object>>',
+        :'drafts' => :'Array<Hash<String, Object>>',
+        :'items' => :'Array<Hash<String, Object>>',
+        :'source' => :'String'
       }
     end
 
@@ -63,12 +101,42 @@ module Reacon
         h[k.to_sym] = v
       }
 
+      if attributes.key?(:'cadences')
+        if (value = attributes[:'cadences']).is_a?(Array)
+          self.cadences = value
+        end
+      else
+        self.cadences = nil
+      end
+
+      if attributes.key?(:'campaigns')
+        if (value = attributes[:'campaigns']).is_a?(Array)
+          self.campaigns = value
+        end
+      else
+        self.campaigns = nil
+      end
+
+      if attributes.key?(:'drafts')
+        if (value = attributes[:'drafts']).is_a?(Array)
+          self.drafts = value
+        end
+      else
+        self.drafts = nil
+      end
+
       if attributes.key?(:'items')
         if (value = attributes[:'items']).is_a?(Array)
           self.items = value
         end
       else
         self.items = nil
+      end
+
+      if attributes.key?(:'source')
+        self.source = attributes[:'source']
+      else
+        self.source = nil
       end
     end
 
@@ -77,8 +145,24 @@ module Reacon
     def list_invalid_properties
       warn '[DEPRECATED] the `list_invalid_properties` method is obsolete'
       invalid_properties = Array.new
+      if @cadences.nil?
+        invalid_properties.push('invalid value for "cadences", cadences cannot be nil.')
+      end
+
+      if @campaigns.nil?
+        invalid_properties.push('invalid value for "campaigns", campaigns cannot be nil.')
+      end
+
+      if @drafts.nil?
+        invalid_properties.push('invalid value for "drafts", drafts cannot be nil.')
+      end
+
       if @items.nil?
         invalid_properties.push('invalid value for "items", items cannot be nil.')
+      end
+
+      if @source.nil?
+        invalid_properties.push('invalid value for "source", source cannot be nil.')
       end
 
       invalid_properties
@@ -88,8 +172,44 @@ module Reacon
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
+      return false if @cadences.nil?
+      return false if @campaigns.nil?
+      return false if @drafts.nil?
       return false if @items.nil?
+      return false if @source.nil?
+      source_validator = EnumAttributeValidator.new('String', ["canonical_mail"])
+      return false unless source_validator.valid?(@source)
       true
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] cadences Value to be assigned
+    def cadences=(cadences)
+      if cadences.nil?
+        fail ArgumentError, 'cadences cannot be nil'
+      end
+
+      @cadences = cadences
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] campaigns Value to be assigned
+    def campaigns=(campaigns)
+      if campaigns.nil?
+        fail ArgumentError, 'campaigns cannot be nil'
+      end
+
+      @campaigns = campaigns
+    end
+
+    # Custom attribute writer method with validation
+    # @param [Object] drafts Value to be assigned
+    def drafts=(drafts)
+      if drafts.nil?
+        fail ArgumentError, 'drafts cannot be nil'
+      end
+
+      @drafts = drafts
     end
 
     # Custom attribute writer method with validation
@@ -102,12 +222,26 @@ module Reacon
       @items = items
     end
 
+    # Custom attribute writer method checking allowed values (enum).
+    # @param [Object] source Object to be assigned
+    def source=(source)
+      validator = EnumAttributeValidator.new('String', ["canonical_mail"])
+      unless validator.valid?(source)
+        fail ArgumentError, "invalid value for \"source\", must be one of #{validator.allowable_values}."
+      end
+      @source = source
+    end
+
     # Checks equality by comparing each attribute.
     # @param [Object] Object to be compared
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          items == o.items
+          cadences == o.cadences &&
+          campaigns == o.campaigns &&
+          drafts == o.drafts &&
+          items == o.items &&
+          source == o.source
     end
 
     # @see the `==` method
@@ -119,7 +253,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [items].hash
+      [cadences, campaigns, drafts, items, source].hash
     end
 
     # Builds the object from hash

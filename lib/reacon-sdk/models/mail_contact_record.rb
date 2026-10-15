@@ -29,6 +29,8 @@ module Reacon
 
     attr_accessor :updated_at
 
+    attr_accessor :verification
+
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
@@ -38,7 +40,8 @@ module Reacon
         :'id' => :'id',
         :'name' => :'name',
         :'tenant_id' => :'tenantId',
-        :'updated_at' => :'updatedAt'
+        :'updated_at' => :'updatedAt',
+        :'verification' => :'verification'
       }
     end
 
@@ -61,7 +64,8 @@ module Reacon
         :'id' => :'String',
         :'name' => :'String',
         :'tenant_id' => :'String',
-        :'updated_at' => :'Time'
+        :'updated_at' => :'Time',
+        :'verification' => :'MailContactRecordVerification'
       }
     end
 
@@ -127,6 +131,10 @@ module Reacon
         self.updated_at = attributes[:'updated_at']
       else
         self.updated_at = nil
+      end
+
+      if attributes.key?(:'verification')
+        self.verification = attributes[:'verification']
       end
     end
 
@@ -246,7 +254,8 @@ module Reacon
           id == o.id &&
           name == o.name &&
           tenant_id == o.tenant_id &&
-          updated_at == o.updated_at
+          updated_at == o.updated_at &&
+          verification == o.verification
     end
 
     # @see the `==` method
@@ -258,7 +267,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [created_at, custom_fields, email, id, name, tenant_id, updated_at].hash
+      [created_at, custom_fields, email, id, name, tenant_id, updated_at, verification].hash
     end
 
     # Builds the object from hash

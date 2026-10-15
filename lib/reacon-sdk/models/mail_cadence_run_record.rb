@@ -53,6 +53,8 @@ module Reacon
 
     attr_accessor :mailbox_id
 
+    attr_accessor :message_edit_revision
+
     attr_accessor :outcome
 
     attr_accessor :pending_message_id
@@ -91,6 +93,7 @@ module Reacon
         :'lease_expires_at' => :'leaseExpiresAt',
         :'lease_owner' => :'leaseOwner',
         :'mailbox_id' => :'mailboxId',
+        :'message_edit_revision' => :'messageEditRevision',
         :'outcome' => :'outcome',
         :'pending_message_id' => :'pendingMessageId',
         :'pending_next_node_id' => :'pendingNextNodeId',
@@ -134,6 +137,7 @@ module Reacon
         :'lease_expires_at' => :'Time',
         :'lease_owner' => :'String',
         :'mailbox_id' => :'String',
+        :'message_edit_revision' => :'Float',
         :'outcome' => :'String',
         :'pending_message_id' => :'String',
         :'pending_next_node_id' => :'String',
@@ -265,6 +269,10 @@ module Reacon
         self.mailbox_id = attributes[:'mailbox_id']
       else
         self.mailbox_id = nil
+      end
+
+      if attributes.key?(:'message_edit_revision')
+        self.message_edit_revision = attributes[:'message_edit_revision']
       end
 
       if attributes.key?(:'outcome')
@@ -572,6 +580,7 @@ module Reacon
           lease_expires_at == o.lease_expires_at &&
           lease_owner == o.lease_owner &&
           mailbox_id == o.mailbox_id &&
+          message_edit_revision == o.message_edit_revision &&
           outcome == o.outcome &&
           pending_message_id == o.pending_message_id &&
           pending_next_node_id == o.pending_next_node_id &&
@@ -591,7 +600,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [actor_id, attempt_count, audience_list_id, cadence_id, cadence_version, campaign_id, campaign_name, contact_id, created_at, current_node_id, due_at, experiment_contexts, id, idempotency_key, last_accepted_message_id, last_error, lease_expires_at, lease_owner, mailbox_id, outcome, pending_message_id, pending_next_node_id, status, task_id, tenant_id, updated_at, version].hash
+      [actor_id, attempt_count, audience_list_id, cadence_id, cadence_version, campaign_id, campaign_name, contact_id, created_at, current_node_id, due_at, experiment_contexts, id, idempotency_key, last_accepted_message_id, last_error, lease_expires_at, lease_owner, mailbox_id, message_edit_revision, outcome, pending_message_id, pending_next_node_id, status, task_id, tenant_id, updated_at, version].hash
     end
 
     # Builds the object from hash

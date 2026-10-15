@@ -4354,6 +4354,9 @@ module Reacon
     # @param [Hash] opts the optional parameters
     # @option opts [Integer] :limit  (default to 100)
     # @option opts [String] :cursor 
+    # @option opts [String] :query 
+    # @option opts [String] :status 
+    # @option opts [String] :sequence_id 
     # @return [MailGetMessagesResponse200]
     def list_mail_messages(team_id, opts = {})
       data, _status_code, _headers = list_mail_messages_with_http_info(team_id, opts)
@@ -4366,6 +4369,9 @@ module Reacon
     # @param [Hash] opts the optional parameters
     # @option opts [Integer] :limit  (default to 100)
     # @option opts [String] :cursor 
+    # @option opts [String] :query 
+    # @option opts [String] :status 
+    # @option opts [String] :sequence_id 
     # @return [Array<(MailGetMessagesResponse200, Integer, Hash)>] MailGetMessagesResponse200 data, response status code and response headers
     def list_mail_messages_with_http_info(team_id, opts = {})
       if @api_client.config.debugging
@@ -4383,6 +4389,18 @@ module Reacon
         fail ArgumentError, 'invalid value for "opts[:"limit"]" when calling MailApi.list_mail_messages, must be greater than or equal to 1.'
       end
 
+      if @api_client.config.client_side_validation && !opts[:'query'].nil? && opts[:'query'].to_s.length > 200
+        fail ArgumentError, 'invalid value for "opts[:"query"]" when calling MailApi.list_mail_messages, the character length must be smaller than or equal to 200.'
+      end
+
+      allowable_values = ["queued", "retry_scheduled", "sending", "provider_accepted", "delivered", "replied", "auto_replied", "bounced", "unsubscribed", "complained", "suppressed", "cancelled", "failed"]
+      if @api_client.config.client_side_validation && opts[:'status'] && !allowable_values.include?(opts[:'status'])
+        fail ArgumentError, "invalid value for \"status\", must be one of #{allowable_values}"
+      end
+      if @api_client.config.client_side_validation && !opts[:'sequence_id'].nil? && opts[:'sequence_id'].to_s.length > 200
+        fail ArgumentError, 'invalid value for "opts[:"sequence_id"]" when calling MailApi.list_mail_messages, the character length must be smaller than or equal to 200.'
+      end
+
       # resource path
       local_var_path = '/v1/teams/{teamId}/mail/messages'.sub('{teamId}', CGI.escape(team_id.to_s))
 
@@ -4390,6 +4408,9 @@ module Reacon
       query_params = opts[:query_params] || {}
       query_params[:'limit'] = opts[:'limit'] if !opts[:'limit'].nil?
       query_params[:'cursor'] = opts[:'cursor'] if !opts[:'cursor'].nil?
+      query_params[:'query'] = opts[:'query'] if !opts[:'query'].nil?
+      query_params[:'status'] = opts[:'status'] if !opts[:'status'].nil?
+      query_params[:'sequenceId'] = opts[:'sequence_id'] if !opts[:'sequence_id'].nil?
 
       # header parameters
       header_params = opts[:header_params] || {}

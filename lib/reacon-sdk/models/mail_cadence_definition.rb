@@ -15,9 +15,19 @@ require 'time'
 
 module Reacon
   class MailCadenceDefinition < ApiModelBase
+    attr_accessor :authoring_revision
+
     attr_accessor :created_at
 
     attr_accessor :created_by_actor_id
+
+    attr_accessor :email_delivery
+
+    attr_accessor :email_excluded_contact_ids
+
+    attr_accessor :email_recipient_overrides
+
+    attr_accessor :email_render_seed
 
     attr_accessor :id
 
@@ -36,8 +46,13 @@ module Reacon
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'authoring_revision' => :'authoringRevision',
         :'created_at' => :'createdAt',
         :'created_by_actor_id' => :'createdByActorId',
+        :'email_delivery' => :'emailDelivery',
+        :'email_excluded_contact_ids' => :'emailExcludedContactIds',
+        :'email_recipient_overrides' => :'emailRecipientOverrides',
+        :'email_render_seed' => :'emailRenderSeed',
         :'id' => :'id',
         :'name' => :'name',
         :'nodes' => :'nodes',
@@ -61,8 +76,13 @@ module Reacon
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'authoring_revision' => :'Float',
         :'created_at' => :'Time',
         :'created_by_actor_id' => :'String',
+        :'email_delivery' => :'MailEmailSequenceDeliverySettings',
+        :'email_excluded_contact_ids' => :'Array<String>',
+        :'email_recipient_overrides' => :'Array<MailEmailSequenceRecipientOverride>',
+        :'email_render_seed' => :'String',
         :'id' => :'String',
         :'name' => :'String',
         :'nodes' => :'Array<MailCadenceNode>',
@@ -95,6 +115,10 @@ module Reacon
         h[k.to_sym] = v
       }
 
+      if attributes.key?(:'authoring_revision')
+        self.authoring_revision = attributes[:'authoring_revision']
+      end
+
       if attributes.key?(:'created_at')
         self.created_at = attributes[:'created_at']
       else
@@ -105,6 +129,26 @@ module Reacon
         self.created_by_actor_id = attributes[:'created_by_actor_id']
       else
         self.created_by_actor_id = nil
+      end
+
+      if attributes.key?(:'email_delivery')
+        self.email_delivery = attributes[:'email_delivery']
+      end
+
+      if attributes.key?(:'email_excluded_contact_ids')
+        if (value = attributes[:'email_excluded_contact_ids']).is_a?(Array)
+          self.email_excluded_contact_ids = value
+        end
+      end
+
+      if attributes.key?(:'email_recipient_overrides')
+        if (value = attributes[:'email_recipient_overrides']).is_a?(Array)
+          self.email_recipient_overrides = value
+        end
+      end
+
+      if attributes.key?(:'email_render_seed')
+        self.email_render_seed = attributes[:'email_render_seed']
       end
 
       if attributes.key?(:'id')
@@ -290,8 +334,13 @@ module Reacon
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          authoring_revision == o.authoring_revision &&
           created_at == o.created_at &&
           created_by_actor_id == o.created_by_actor_id &&
+          email_delivery == o.email_delivery &&
+          email_excluded_contact_ids == o.email_excluded_contact_ids &&
+          email_recipient_overrides == o.email_recipient_overrides &&
+          email_render_seed == o.email_render_seed &&
           id == o.id &&
           name == o.name &&
           nodes == o.nodes &&
@@ -310,7 +359,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [created_at, created_by_actor_id, id, name, nodes, status, stop_conditions, tenant_id, version].hash
+      [authoring_revision, created_at, created_by_actor_id, email_delivery, email_excluded_contact_ids, email_recipient_overrides, email_render_seed, id, name, nodes, status, stop_conditions, tenant_id, version].hash
     end
 
     # Builds the object from hash

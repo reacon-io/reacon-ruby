@@ -33,7 +33,12 @@ module Reacon
 
     attr_accessor :mailboxes
 
+    attr_accessor :recipients
+
+    # Legacy message-based rate, retained for API compatibility.
     attr_accessor :reply_rate
+
+    attr_accessor :sequences
 
     attr_accessor :to
 
@@ -53,7 +58,9 @@ module Reacon
         :'delivery_rate' => :'deliveryRate',
         :'from' => :'from',
         :'mailboxes' => :'mailboxes',
+        :'recipients' => :'recipients',
         :'reply_rate' => :'replyRate',
+        :'sequences' => :'sequences',
         :'to' => :'to',
         :'total' => :'total',
         :'variants' => :'variants'
@@ -82,7 +89,9 @@ module Reacon
         :'delivery_rate' => :'Float',
         :'from' => :'Time',
         :'mailboxes' => :'Array<MailMessageAnalyticsOverviewMailboxesInner>',
+        :'recipients' => :'MailRecipientEngagement',
         :'reply_rate' => :'Float',
+        :'sequences' => :'Array<MailSequenceRecipientEngagement>',
         :'to' => :'Time',
         :'total' => :'Float',
         :'variants' => :'Array<MailMessageAnalyticsOverviewVariantsInner>'
@@ -170,10 +179,20 @@ module Reacon
         self.mailboxes = nil
       end
 
+      if attributes.key?(:'recipients')
+        self.recipients = attributes[:'recipients']
+      end
+
       if attributes.key?(:'reply_rate')
         self.reply_rate = attributes[:'reply_rate']
       else
         self.reply_rate = nil
+      end
+
+      if attributes.key?(:'sequences')
+        if (value = attributes[:'sequences']).is_a?(Array)
+          self.sequences = value
+        end
       end
 
       if attributes.key?(:'to')
@@ -406,7 +425,9 @@ module Reacon
           delivery_rate == o.delivery_rate &&
           from == o.from &&
           mailboxes == o.mailboxes &&
+          recipients == o.recipients &&
           reply_rate == o.reply_rate &&
+          sequences == o.sequences &&
           to == o.to &&
           total == o.total &&
           variants == o.variants
@@ -421,7 +442,7 @@ module Reacon
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [acceptance_rate, average_acceptance_latency_ms, bounce_rate, complaint_rate, counts, daily, delivery_rate, from, mailboxes, reply_rate, to, total, variants].hash
+      [acceptance_rate, average_acceptance_latency_ms, bounce_rate, complaint_rate, counts, daily, delivery_rate, from, mailboxes, recipients, reply_rate, sequences, to, total, variants].hash
     end
 
     # Builds the object from hash
